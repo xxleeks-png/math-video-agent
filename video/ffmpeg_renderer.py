@@ -21,8 +21,29 @@ def _subtitle_file(document: VideoDocument, output: Path) -> Path:
     subtitle_file.write_text("\n".join(blocks), encoding="utf-8")
     return subtitle_file
 
-def _escape_text(text: str) -> str:
-    return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'").replace(",", "\\,").replace(";", "\\;")
+def _escape_filter_path(path: str) -> str:
+    return path.replace("\\", "/").replace(":", "\\:")
+
+
+def _write_textfile(output: Path, name: str, text: str) -> Path:
+    path = output.parent / f".{output.stem}_{name}.txt"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) -> str:
+    text_path = _write_textfile(output, f"text_{index}", element.text or element.value or "")
+    path = _escape_filter_path(str(text_path))
+    x = f"(w-text_w)*{element.x:.3f}"
+    y = f"h*{element.y:.3f}-text_h/2"
+    size = int(48 * max(0.7, min(1.8, element.scale)))
+    color = "white" if element.emphasis else "0x111827"
+    box = "box=1:boxcolor=0xFFFFFF@0.92:boxborderw=18" if not element.emphasis else "box=1:boxcolor=0x111827@0.96:boxborderw=22"
+    enable = ""
+    if element.start is not None and element.end is not None:
+        enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+    font = f":fontfile={fontfile}" if fontfile else ""
+    return f"drawtext=textfile={path}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{enable}"
 
 def _font_file() -> str | None:
     candidates = [
