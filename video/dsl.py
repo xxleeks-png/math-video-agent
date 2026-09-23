@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+from .semantic_actions import validate_action_fields
+
 
 class VideoElement(BaseModel):
     type: str
@@ -62,17 +64,15 @@ def validate_video_document(document: VideoDocument) -> bool:
                 return False
             if element.end is not None and element.start is not None and element.end <= element.start:
                 return False
-            if element.action_ratio is not None and not 0 <= element.action_ratio <= 1:
+            if not validate_action_fields(
+                element.visual_action,
+                element.action_ratio,
+                element.action_units,
+                element.action_selected,
+                element.action_removed,
+                element.action_remaining,
+            ):
                 return False
-            for value in (element.action_units, element.action_selected, element.action_removed, element.action_remaining):
-                if value is not None and value < 0:
-                    return False
-            if element.action_units is not None and element.action_units <= 0:
-                return False
-            if element.action_units is not None:
-                counts = (element.action_selected, element.action_removed, element.action_remaining)
-                if all(v is not None for v in counts) and element.action_selected - element.action_removed != element.action_remaining:
-                    return False
         previous_end = scene.end
     for cue in document.visual_cues:
         try:
