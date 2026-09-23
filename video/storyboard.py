@@ -6,6 +6,7 @@ import os
 from math_engine.models import MathSolution
 from .dsl import VideoDocument, VideoScene, VideoElement, validate_video_document
 from .math_visuals import build_math_visuals
+from .narration_visual_map import build_narration_visual_cues
 from agents.mistake_strategy import build_mistake_strategy
 
 def build_storyboard(solution: MathSolution) -> VideoDocument:
@@ -67,4 +68,6 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
     document = VideoDocument(duration=plan.duration, scenes=scenes)
     if not validate_video_document(document):
         raise ValueError("生成的视频 DSL 未通过时间轴校验")
+    cues = build_narration_visual_cues(document)
+    document = document.model_copy(update={"visual_cues": [cue.__dict__ for cue in cues]})
     return document
