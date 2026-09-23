@@ -12,8 +12,9 @@ def generate(prompt: str, config: LLMConfig) -> str:
         "format": "json",
         "options": {"temperature": config.temperature},
     }).encode("utf-8")
+    base_url = config.base_url.rstrip("/")
     req = request.Request(
-        f"{config.base_url.rstrip("/")}/api/generate",
+        f"{base_url}/api/generate",
         data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
