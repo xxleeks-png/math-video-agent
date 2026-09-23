@@ -9,6 +9,7 @@ from math_engine.solver import solve
 from video.ffmpeg_renderer import render_mp4
 from video.storyboard import build_storyboard
 from video.voice_timeline import synthesize_voice_timeline
+from video.audio_alignment import align_document_to_audio
 from tts.models import VoiceConfig
 
 
@@ -44,6 +45,8 @@ def generate_video(
         str(output_root / "audio"),
     )
 
+    document = align_document_to_audio(document, audio_result.segments)
+
     video_path = render_mp4(
         document,
         str(output_root / "math_video.mp4"),
@@ -55,6 +58,7 @@ def generate_video(
         "solution": solution.model_dump(),
         "audio": [segment.model_dump() for segment in audio_result.segments],
         "duration": document.duration,
+        "audio_aligned": True,
         "resolution": f"{document.width}x{document.height}",
     }
     (output_root / "result.json").write_text(
