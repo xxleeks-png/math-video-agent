@@ -112,14 +112,30 @@ def synthesize_batch(
         str(script_json),
         str(output),
     ]
-    completed = subprocess.run(
-        command,
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    # Stream F5-TTS output so a local inference failure is visible immediately.
+    # Keep a log file as well, because the launcher may close before the traceback
+    # can be copied from the console.
+    log_path = output / "f5_tts.log"
+    with log_path.open("w", encoding="utf-8", errors="replace") as log_file:
+        completed = subprocess.run(
+            command,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        log_file.write(completed.stdout or "")
+        if completed.stdout:
+            print(completed.stdout, end="", flush=True)
+
+    if completed.returncode != 0:
+        tail = (completed.stdout or "")[-6000:]
+        raise RuntimeError(
+            "F5-TTS 本地推理失败，退出码 "
+            f"{completed.returncode}。详细日志：{log_path}\n\n{tail}"
+        )
 
     generated = {
         p.stem: p for p in output.rglob("*.wav") if p.is_file()
