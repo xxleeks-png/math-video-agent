@@ -6,6 +6,10 @@ class VideoElement(BaseModel):
     text: Optional[str] = None
     value: Optional[str] = None
     semantic_key: Optional[str] = None
+    visual_action: Optional[str] = None
+    action_target: Optional[str] = None
+    action_value: Optional[str] = None
+    action_ratio: Optional[float] = None
     x: float = 0.5
     y: float = 0.5
     scale: float = 1.0
@@ -49,6 +53,8 @@ def validate_video_document(document: VideoDocument) -> bool:
             if element.end is not None and element.end > scene.end:
                 return False
             if element.end is not None and element.start is not None and element.end <= element.start:
+                return False
+            if element.action_ratio is not None and not 0 <= element.action_ratio <= 1:
                 return False
         previous_end = scene.end
     for cue in document.visual_cues:
