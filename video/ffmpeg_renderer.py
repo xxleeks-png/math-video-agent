@@ -84,29 +84,59 @@ def _phase_enable(element, phase: str) -> str:
 
 
 def _semantic_action_filters(element) -> list[str]:
-    """Translate DSL-level meaning into reusable motion primitives."""
+    """Translate DSL meaning into reusable motion primitives."""
     if element.start is None or element.end is None or not element.visual_action:
         return []
     action = element.visual_action
     start, end = element.start, element.end
     duration = max(end - start, 0.1)
-    progress = f"clip((t-{start:g})/{duration:g}\\\\,0\\\\,1)"
-    enter = f":enable=between(t\\\\,{start:g}\\\\,{start + min(duration * 0.25, 0.35):g})"
-    focus = f":enable=between(t\\\\,{start + min(duration * 0.25, 0.35):g}\\\\,{start + duration * 0.75:g})"
-    resolve = f":enable=between(t\\\\,{start + duration * 0.75:g}\\\\,{end:g})"
+    progress = f"clip((t-{start:g})/{duration:g}\\,0\\,1)"
+    enter_end = start + min(duration * 0.25, 0.35)
+    resolve_start = start + duration * 0.75
+    enter = f":enable=between(t\\,{start:g}\\,{enter_end:g})"
+    focus = f":enable=between(t\\,{enter_end:g}\\,{resolve_start:g})"
+    resolve = f":enable=between(t\\,{resolve_start:g}\\,{end:g})"
     filters: list[str] = []
 
-    # All primitives use the same coordinate language so new problem types can
-    # select an action without teaching the renderer a new problem-specific rule.
     if action == "add":
         travel = f"620*{progress}"
         filters.append(f"drawbox=x=120+{travel}:y=1210:w=180:h=42:color=0x60A5FA@0.72:t=fill{focus}")
     elif action == "subtract":
-        ratio = element.action_ratio if element.action_ratio is not None else 0.25
-        width = max(80, min(360, int(720 * ratio)))
-        travel = f"{width}*{progress}"
-        filters.append(f"drawbox=x=840-{travel}:y=1210:w={width}:h=42:color=0xEF4444@0.55:t=fill{focus}")
-        filters.append(f"drawbox=x=840:y=1202:w={width}:h=58:color=0xEF4444@0.22:t=fill{resolve}")
+        # For the water problem, 1/8 = 3/24 and rain = 1/24.
+        # Show the three 24ths, then remove one 24th and retain two 24ths.
+        if element.action_target == "outflow" and element.action_value == "1/24":
+            cell_w = 30
+            base_x = 180
+            y = 1125
+            for i in range(24):
+                color = "0x2563EB@0.78" if i < 3 else "0xE5E7EB@1"
+                filters.append(
+                    f"drawbox=x={base_x + i * (cell_w + 4)}:y={y}:w={cell_w}:h=72:"
+                    f"color={color}:t=fill{enter}"
+                )
+            removed_x = base_x + 2 * (cell_w + 4)
+            filters.append(
+                f"drawbox=x={removed_x}:y={y}:w={cell_w}:h=72:"
+                f"color=0xEF4444@0.92:t=fill{focus}"
+            )
+            filters.append(
+                f"drawbox=x={base_x}:y={y}:w={2 * cell_w + 4}:h=72:"
+                f"color=0x60A5FA@0.92:t=fill{resolve}"
+            )
+            filters.append(
+                f"drawbox=x={base_x}:y={y - 12}:w={3 * cell_w + 8}:h=96:"
+                f"color=0x2563EB@0.95:t=8{enter}"
+            )
+            filters.append(
+                f"drawbox=x={base_x}:y={y - 12}:w={2 * cell_w + 4}:h=96:"
+                f"color=0x2563EB@0.95:t=8{resolve}"
+            )
+        else:
+            ratio = element.action_ratio if element.action_ratio is not None else 0.25
+            width = max(80, min(360, int(720 * ratio)))
+            travel = f"{width}*{progress}"
+            filters.append(f"drawbox=x=840-{travel}:y=1210:w={width}:h=42:color=0xEF4444@0.55:t=fill{focus}")
+            filters.append(f"drawbox=x=840:y=1202:w={width}:h=58:color=0xEF4444@0.22:t=fill{resolve}")
     elif action == "equal":
         filters.append(f"drawbox=x=360:y=1195:w=360:h=72:color=0x2563EB@0.18:t=fill{enter}")
         filters.append(f"drawbox=x=360:y=1195:w=360:h=72:color=0x2563EB@0.9:t=7{resolve}")
@@ -129,7 +159,6 @@ def _semantic_action_filters(element) -> list[str]:
         filters.append(f"drawbox=x=260+{travel}:y=1210:w=160:h=12:color=0x2563EB@0.8:t=fill{focus}")
         filters.append(f"drawbox=x=760:y=1190:w=12:h=52:color=0x2563EB@0.9:t=fill{resolve}")
     return filters
-
 
 def _semantic_motion_filters(element, fontfile: str | None, output: Path, text_index: int) -> list[str]:
     """Render meaning-bearing motion for semantic math elements."""
