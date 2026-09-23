@@ -56,28 +56,21 @@ def _font_file() -> str | None:
     return next((p for p in candidates if Path(p).exists()), None)
 
 def _drawtext(element, fontfile: str | None) -> str:
-    text = _escape_text(element.text or element.value or "")
-    x = f"(w-text_w)*{element.x:.3f}"
-    y = f"h*{element.y:.3f}-text_h/2"
-    size = int(48 * max(0.7, min(1.8, element.scale)))
-    color = "white" if element.emphasis else "0x111827"
-    box = "box=1:boxcolor=0xFFFFFF@0.92:boxborderw=18" if not element.emphasis else "box=1:boxcolor=0x111827@0.96:boxborderw=22"
-    enable = ""
-    if element.start is not None and element.end is not None:
-        enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
-    font = f":fontfile={fontfile}" if fontfile else ""
-    return f"drawtext=text={text}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{enable}"
+    raise RuntimeError("直接 drawtext 已弃用，请使用 _textfile_drawtext")
 
-def _visual_filter(document: VideoDocument, subtitle_file: Path) -> str:
+
+def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -> str:
     filters = ["format=yuv420p"]
     fontfile = _font_file()
+    text_index = 0
     for scene in document.scenes:
         start, end = f"{scene.start:g}", f"{scene.end:g}"
         filters.append(f"drawbox=x=60:y=80:w=960:h=130:color=0x111827@0.96:t=fill:enable=between(t\\,{start}\\,{end})")
         filters.append(f"drawbox=x=60:y=230:w=960:h=5:color=0x2563EB@1:t=fill:enable=between(t\\,{start}\\,{end})")
         for element in scene.elements:
             if element.type in {"title", "method", "math_step", "answer", "warning", "summary", "cta", "problem", "text", "rate", "formula"}:
-                filters.append(_drawtext(element, fontfile))
+                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
+                text_index += 1
             elif element.type == "tank":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x60A5FA@0.25:t=10{enable}")
@@ -107,14 +100,21 @@ def _visual_filter(document: VideoDocument, subtitle_file: Path) -> str:
                 filters.append(f"drawtext=text=长方形:fontsize=52:fontcolor=0x111827:x=(w-text_w)/2:y=610{enable}")
             elif element.type == "fraction_bar":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                duration = max((element.end or 1) - (element.start or 0), 0.1)
+                fill_expr = f"350*clip((t-{element.start:g})/{duration:g},0,1)"
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0xE5E7EB@1:t=fill{enable}")
-                filters.append(f"drawbox=x=190:y=560:w=350:h=180:color=0x60A5FA@0.75:t=fill{enable}")
+                filters.append(f"drawbox=x=190:y=560:w={fill_expr}:h=180:color=0x60A5FA@0.75:t=fill{enable}")
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0x111827@1:t=8{enable}")
+                label = element.text or "单位“1”"
+                label_path = _write_textfile(output, f"fraction_{element.start:g}", label)
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=44:fontcolor=0x111827:x=(w-text_w)/2:y=770{enable}")
             elif element.type == "relation":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=150:y=1077:w=780:h=6:color=0x64748B@1:t=fill{enable}")
                 filters.append(f"drawbox=x=537:y=980:w=6:h=200:color=0x64748B@1:t=fill{enable}")
-                filters.append(f"drawtext=text={_escape_text(element.text or '')}:fontsize=42:fontcolor=0x111827:x=(w-text_w)/2:y=1250{enable}")
+                relation_path = _write_textfile(output, f"relation_{text_index}", element.text or "")
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(relation_path))}:fontsize=42:fontcolor=0x111827:x=(w-text_w)/2:y=1250{enable}")
+                text_index += 1
     subtitle_path = str(subtitle_file).replace("\\", "/").replace(":", "\\:")
     filters.append("subtitles=" + subtitle_path + ":force_style='FontName=Microsoft YaHei,FontSize=20,PrimaryColour=&H00111111&,OutlineColour=&H00FFFFFF&,Outline=2,Alignment=2,MarginV=150'")
     return ",".join(filters)
@@ -126,7 +126,7 @@ def render_mp4(document: VideoDocument, output_path: str = "output/math_video.mp
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     subtitle_file = _subtitle_file(document, output)
-    vf = _visual_filter(document, subtitle_file)
+    vf = _visual_filter(document, output, subtitle_file)
     command = [ffmpeg, "-y", "-f", "lavfi", "-i", f"color=c=0xF3F4F6:s={document.width}x{document.height}:r={document.fps}:d={document.duration}"]
     valid_audio = [s for s in (audio_segments or []) if s.audio_path and Path(s.audio_path).exists()]
     if valid_audio:
