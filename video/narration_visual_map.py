@@ -15,6 +15,7 @@ class NarrationVisualCue:
     sentence_index: int = 0
     action_phase: str = "hold"
     emphasis_token: str = ""
+    semantic_key: str = ""
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -61,6 +62,7 @@ def build_narration_visual_cues(document) -> list[NarrationVisualCue]:
                 text=text,
                 segment_id=f"{key}_{sentence_index + 1}",
                 sentence_index=sentence_index,
+                semantic_key=element.semantic_key if element else "",
             ))
 
     return cues
@@ -91,5 +93,6 @@ def build_sentence_action_cues(document) -> list[NarrationVisualCue]:
                 sentence_index=cue.sentence_index,
                 action_phase=phase,
                 emphasis_token=cue.text if phase == "focus" else "",
+                semantic_key=cue.semantic_key,
             ))
     return expanded
