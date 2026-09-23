@@ -99,6 +99,21 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 for offset in (0, 70, 140):
                     x_pos = side + offset if direction > 0 else side + 250 - offset - 22
                     filters.append(f"drawbox=x={x_pos}:y=1075:w=22:h=22:color=0x2563EB@1:t=fill{enable}")
+            elif element.type == "mistake":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                filters.append(f"drawbox=x=110:y=1450:w=860:h=150:color=0xFEE2E2@0.96:t=fill{enable}")
+                filters.append(f"drawbox=x=110:y=1450:w=860:h=150:color=0xB91C1C@1:t=8{enable}")
+                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
+                text_index += 1
+            elif element.type == "correction":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                filters.append(f"drawbox=x=100:y=1280:w=880:h=180:color=0xDBEAFE@0.96:t=fill{enable}")
+                filters.append(f"drawbox=x=100:y=1280:w=880:h=180:color=0x2563EB@1:t=8{enable}")
+                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
+                text_index += 1
+            elif element.type == "method":
+                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
+                text_index += 1
             elif element.type == "dimension":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 label = element.text or "长度"
