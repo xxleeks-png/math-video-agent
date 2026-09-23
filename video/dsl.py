@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+
 class VideoElement(BaseModel):
     type: str
     text: Optional[str] = None
@@ -10,6 +11,10 @@ class VideoElement(BaseModel):
     action_target: Optional[str] = None
     action_value: Optional[str] = None
     action_ratio: Optional[float] = None
+    action_units: Optional[int] = None
+    action_selected: Optional[int] = None
+    action_removed: Optional[int] = None
+    action_remaining: Optional[int] = None
     x: float = 0.5
     y: float = 0.5
     scale: float = 1.0
@@ -20,12 +25,14 @@ class VideoElement(BaseModel):
     cue_id: Optional[str] = None
     action_phase: Optional[str] = None
 
+
 class VideoScene(BaseModel):
     start: float
     end: float
     elements: List[VideoElement] = Field(default_factory=list)
     narration: str = ""
     subtitle: str = ""
+
 
 class VideoDocument(BaseModel):
     version: str = "0.8.0"
@@ -35,6 +42,7 @@ class VideoDocument(BaseModel):
     duration: float
     scenes: List[VideoScene]
     visual_cues: List[dict] = Field(default_factory=list)
+
 
 def validate_video_document(document: VideoDocument) -> bool:
     if document.width <= 0 or document.height <= 0 or document.fps <= 0:
@@ -56,6 +64,15 @@ def validate_video_document(document: VideoDocument) -> bool:
                 return False
             if element.action_ratio is not None and not 0 <= element.action_ratio <= 1:
                 return False
+            for value in (element.action_units, element.action_selected, element.action_removed, element.action_remaining):
+                if value is not None and value < 0:
+                    return False
+            if element.action_units is not None and element.action_units <= 0:
+                return False
+            if element.action_units is not None:
+                counts = (element.action_selected, element.action_removed, element.action_remaining)
+                if all(v is not None for v in counts) and element.action_selected - element.action_removed != element.action_remaining:
+                    return False
         previous_end = scene.end
     for cue in document.visual_cues:
         try:
