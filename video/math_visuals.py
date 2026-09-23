@@ -1,8 +1,11 @@
 from dataclasses import dataclass
+from fractions import Fraction
+import re
 from typing import Callable
 
 from math_engine.models import MathSolution
 from .dsl import VideoElement
+from .semantic_actions import infer_action_from_expression
 
 
 @dataclass(frozen=True)
@@ -35,27 +38,56 @@ def _rectangle(solution: MathSolution) -> list[VideoElement]:
     ]
 
 
+def _fraction_parts(expression: str) -> tuple[int, int, str, int, int] | None:
+    matches = re.findall(r"(-?\d+)\s*/\s*(-?\d+)", expression or "")
+    if len(matches) < 2:
+        return None
+    n1, d1 = map(int, matches[0])
+    n2, d2 = map(int, matches[1])
+    if d1 <= 0 or d2 <= 0 or d1 != d2:
+        return None
+    action = infer_action_from_expression(expression)
+    if action not in {"add", "subtract"}:
+        return None
+    return n1, d1, action, n2, d2
+
+
 def _fraction(solution: MathSolution) -> list[VideoElement]:
     step = solution.steps[0] if solution.steps else solution.answer
+    parts = _fraction_parts(step)
+    action_kwargs = {}
+    if parts:
+        n1, denominator, action, n2, _ = parts
+        action_kwargs = {
+            "action_units": denominator,
+            "action_selected": max(n1, 0),
+            "action_removed": max(n2, 0) if action == "subtract" else 0,
+            "action_remaining": max(n1 - n2, 0) if action == "subtract" else n1 + n2,
+        }
+        if action == "add":
+            action_kwargs["action_ratio"] = min(1.0, max(0.0, (n2 / denominator)))
+    operation_action = parts[2] if parts else "transform"
     return [
-        VideoElement(type="fraction_bar", semantic_key="original", text="分数模型", x=0.5, y=0.45, start=4, end=9, animation="draw", visual_action="split", action_target="unit"),
-        VideoElement(type="relation", semantic_key="operation", text=step, x=0.5, y=0.68, scale=0.9, start=9, end=15, animation="fade", visual_action="transform", action_target="fraction_operation"),
+        VideoElement(type="fraction_bar", semantic_key="original", text="分数模型", x=0.5, y=0.45, start=4, end=9, animation="draw", visual_action="split", action_target="unit", action_units=parts[1] if parts else None),
+        VideoElement(type="relation", semantic_key="operation", text=step, x=0.5, y=0.68, scale=0.9, start=9, end=15, animation="fade", visual_action=operation_action, action_target="fraction_operation", **action_kwargs),
         VideoElement(type="formula", semantic_key="result", text=f"结果：{solution.answer}", x=0.5, y=0.80, scale=0.9, start=14, end=18, animation="pop", visual_action="equal", action_target="result", action_value=solution.answer),
     ]
 
 
 def _arithmetic(solution: MathSolution) -> list[VideoElement]:
     elements: list[VideoElement] = []
+    step = solution.steps[0] if solution.steps else solution.answer
+    action = infer_action_from_expression(step) or "transform"
     semantic_keys = ("operand_a", "operator", "result")
-    actions = ("highlight", "transform", "equal")
-    for i, step in enumerate(solution.steps[:3]):
+    actions = ("highlight", action, "equal")
+    for i, current_step in enumerate(solution.steps[:3]):
         start = 5 + i * 4
         end = start + 4
         elements.append(
             VideoElement(
                 type="math_step",
                 semantic_key=semantic_keys[min(i, len(semantic_keys) - 1)],
-                text=step,
+                text=current_step,
                 x=0.5,
                 y=0.45 + i * 0.15,
                 scale=1.0,
