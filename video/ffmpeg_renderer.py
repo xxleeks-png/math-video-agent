@@ -175,6 +175,11 @@ def _semantic_motion_filters(element, fontfile: str | None, output: Path, text_i
         return []
     key = element.semantic_key or ""
     filters: list[str] = _semantic_action_filters(element)
+    # Elements with a declared visual_action are rendered by the reusable action
+    # layer plus their type-specific geometry in _visual_filter. Returning here
+    # prevents the older semantic-key renderer from drawing duplicate overlays.
+    if element.visual_action:
+        return filters
     enter = _phase_enable(element, "enter")
     focus = _phase_enable(element, "focus")
     resolve = _phase_enable(element, "resolve")
