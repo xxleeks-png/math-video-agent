@@ -27,6 +27,8 @@ def _water(solution: MathSolution) -> list[VideoElement]:
 def _rectangle(solution: MathSolution) -> list[VideoElement]:
     return [
         VideoElement(type="shape", text="长方形", x=0.5, y=0.42, scale=1.3, start=4, end=10, animation="draw"),
+        VideoElement(type="dimension", text="长", x=0.78, y=0.42, start=6, end=10, animation="draw"),
+        VideoElement(type="dimension", text="宽", x=0.5, y=0.59, start=7, end=11, animation="draw"),
         VideoElement(type="relation", text="面积 = 长 × 宽", x=0.5, y=0.58, scale=0.95, start=8, end=13, animation="fade"),
         VideoElement(type="formula", text=solution.steps[0], x=0.5, y=0.70, scale=0.88, start=12, end=18, animation="fade"),
     ]
