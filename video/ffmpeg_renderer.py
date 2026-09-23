@@ -104,31 +104,40 @@ def _semantic_action_filters(element) -> list[str]:
     elif action == "subtract":
         # For the water problem, 1/8 = 3/24 and rain = 1/24.
         # Show the three 24ths, then remove one 24th and retain two 24ths.
-        if element.action_target == "outflow" and element.action_value == "1/24":
-            cell_w = 30
-            base_x = 180
+        if element.action_units and element.action_selected is not None and element.action_removed is not None and element.action_remaining is not None:
+            units = element.action_units
+            selected = element.action_selected
+            removed = element.action_removed
+            remaining = element.action_remaining
+            cell_w = max(16, min(30, int(720 / units) - 4))
+            gap = 4
+            total_w = units * cell_w + (units - 1) * gap
+            base_x = int((1080 - total_w) / 2)
             y = 1125
-            for i in range(24):
-                color = "0x2563EB@0.78" if i < 3 else "0xE5E7EB@1"
+            for i in range(units):
+                color = "0x2563EB@0.78" if i < selected else "0xE5E7EB@1"
                 filters.append(
-                    f"drawbox=x={base_x + i * (cell_w + 4)}:y={y}:w={cell_w}:h=72:"
+                    f"drawbox=x={base_x + i * (cell_w + gap)}:y={y}:w={cell_w}:h=72:"
                     f"color={color}:t=fill{enter}"
                 )
-            removed_x = base_x + 2 * (cell_w + 4)
+            removed_start = max(0, selected - removed)
+            for i in range(removed_start, selected):
+                filters.append(
+                    f"drawbox=x={base_x + i * (cell_w + gap)}:y={y}:w={cell_w}:h=72:"
+                    f"color=0xEF4444@0.92:t=fill{focus}"
+                )
+            retained_w = remaining * cell_w + max(remaining - 1, 0) * gap
             filters.append(
-                f"drawbox=x={removed_x}:y={y}:w={cell_w}:h=72:"
-                f"color=0xEF4444@0.92:t=fill{focus}"
-            )
-            filters.append(
-                f"drawbox=x={base_x}:y={y}:w={2 * cell_w + 4}:h=72:"
+                f"drawbox=x={base_x}:y={y}:w={retained_w}:h=72:"
                 f"color=0x60A5FA@0.92:t=fill{resolve}"
             )
+            selected_w = selected * cell_w + max(selected - 1, 0) * gap
             filters.append(
-                f"drawbox=x={base_x}:y={y - 12}:w={3 * cell_w + 8}:h=96:"
+                f"drawbox=x={base_x}:y={y - 12}:w={selected_w}:h=96:"
                 f"color=0x2563EB@0.95:t=8{enter}"
             )
             filters.append(
-                f"drawbox=x={base_x}:y={y - 12}:w={2 * cell_w + 4}:h=96:"
+                f"drawbox=x={base_x}:y={y - 12}:w={retained_w}:h=96:"
                 f"color=0x2563EB@0.95:t=8{resolve}"
             )
         else:
