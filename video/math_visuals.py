@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from fractions import Fraction
 import re
 from typing import Callable
 
@@ -58,14 +57,18 @@ def _fraction(solution: MathSolution) -> list[VideoElement]:
     action_kwargs = {}
     if parts:
         n1, denominator, action, n2, _ = parts
-        action_kwargs = {
-            "action_units": denominator,
-            "action_selected": max(n1, 0),
-            "action_removed": max(n2, 0) if action == "subtract" else 0,
-            "action_remaining": max(n1 - n2, 0) if action == "subtract" else n1 + n2,
-        }
-        if action == "add":
-            action_kwargs["action_ratio"] = min(1.0, max(0.0, (n2 / denominator)))
+        if action == "subtract":
+            action_kwargs.update(
+                action_units=denominator,
+                action_selected=max(n1, 0),
+                action_removed=max(n2, 0),
+                action_remaining=max(n1 - n2, 0),
+            )
+        else:
+            action_kwargs.update(
+                action_units=denominator,
+                action_ratio=min(1.0, max(0.0, n2 / denominator)),
+            )
     operation_action = parts[2] if parts else "transform"
     return [
         VideoElement(type="fraction_bar", semantic_key="original", text="分数模型", x=0.5, y=0.45, start=4, end=9, animation="draw", visual_action="split", action_target="unit", action_units=parts[1] if parts else None),
