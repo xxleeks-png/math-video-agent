@@ -17,6 +17,12 @@ class VideoElement(BaseModel):
     action_selected: Optional[int] = None
     action_removed: Optional[int] = None
     action_remaining: Optional[int] = None
+    # Optional semantic operands/results used by compare/transform/split/merge.
+    action_left: Optional[str] = None
+    action_right: Optional[str] = None
+    action_result: Optional[str] = None
+    action_from: Optional[str] = None
+    action_to: Optional[str] = None
     x: float = 0.5
     y: float = 0.5
     scale: float = 1.0
@@ -71,6 +77,11 @@ def validate_video_document(document: VideoDocument) -> bool:
                 element.action_selected,
                 element.action_removed,
                 element.action_remaining,
+                element.action_left,
+                element.action_right,
+                element.action_result,
+                element.action_from,
+                element.action_to,
             ):
                 return False
         previous_end = scene.end
