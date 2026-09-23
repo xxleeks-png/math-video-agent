@@ -42,10 +42,23 @@ def _fraction(solution: MathSolution) -> list[VideoElement]:
 
 
 def _arithmetic(solution: MathSolution) -> list[VideoElement]:
-    return [
-        VideoElement(type="formula", text=step, x=0.5, y=0.44 + i * 0.14, scale=0.95, start=5 + i * 3, end=11 + i * 3, animation="fade")
-        for i, step in enumerate(solution.steps[:3])
-    ]
+    elements: list[VideoElement] = []
+    for i, step in enumerate(solution.steps[:3]):
+        start = 5 + i * 4
+        end = start + 4
+        elements.append(
+            VideoElement(
+                type="math_step",
+                text=step,
+                x=0.5,
+                y=0.45 + i * 0.15,
+                scale=1.0,
+                start=start,
+                end=end,
+                animation="pop",
+            )
+        )
+    return elements
 
 
 VISUAL_TEMPLATES = [
