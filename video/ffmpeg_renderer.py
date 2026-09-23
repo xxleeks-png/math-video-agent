@@ -44,7 +44,7 @@ def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) 
     enable = ""
     if element.start is not None and element.end is not None:
         enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
-    font = f":fontfile={fontfile}" if fontfile else ""
+    font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
     return f"drawtext=textfile={path}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{enable}"
 
 def _font_file() -> str | None:
@@ -80,8 +80,6 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                     f"drawbox=x=210:y={int((element.y or 0.5)*1920 + 55)}:w=660:h=6:"
                     f"color=0x2563EB@0.9:t=fill{enable}"
                 )
-                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
-                text_index += 1
             elif element.type == "tank":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x60A5FA@0.25:t=10{enable}")
@@ -90,7 +88,8 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 y_expr = f"880-({height_expr})"
                 filters.append(f"drawbox=x=300:y={y_expr}:w=480:h=180:color=0x60A5FA@0.55:t=fill{enable}")
                 tank_path = _write_textfile(output, "tank", "满池水 = 1")
-                filters.append(f"drawtext=textfile={_escape_filter_path(str(tank_path))}:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{enable}")
+                font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(tank_path))}:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{font}{enable}")
             elif element.type == "rate":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 side = 180 if element.x < 0.5 else 650
@@ -118,12 +117,15 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 label = element.text or "长度"
                 label_path = _write_textfile(output, f"dimension_{element.start:g}", label)
-                filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=42:fontcolor=0x111827:x=820:y=650{enable}")
+                font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=42:fontcolor=0x111827:x=820:y=650{font}{enable}")
             elif element.type == "shape":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0xDBEAFE@0.7:t=fill{enable}")
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0x2563EB@1:t=8{enable}")
-                filters.append(f"drawtext=text=长方形:fontsize=52:fontcolor=0x111827:x=(w-text_w)/2:y=610{enable}")
+                shape_path = _write_textfile(output, "shape", "长方形")
+                font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(shape_path))}:fontsize=52:fontcolor=0x111827:x=(w-text_w)/2:y=610{font}{enable}")
             elif element.type == "fraction_bar":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 duration = max((element.end or 1) - (element.start or 0), 0.1)
@@ -133,13 +135,15 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0x111827@1:t=8{enable}")
                 label = element.text or "单位“1”"
                 label_path = _write_textfile(output, f"fraction_{element.start:g}", label)
-                filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=44:fontcolor=0x111827:x=(w-text_w)/2:y=770{enable}")
+                font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=44:fontcolor=0x111827:x=(w-text_w)/2:y=770{font}{enable}")
             elif element.type == "relation":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=150:y=1077:w=780:h=6:color=0x64748B@1:t=fill{enable}")
                 filters.append(f"drawbox=x=537:y=980:w=6:h=200:color=0x64748B@1:t=fill{enable}")
                 relation_path = _write_textfile(output, f"relation_{text_index}", element.text or "")
-                filters.append(f"drawtext=textfile={_escape_filter_path(str(relation_path))}:fontsize=42:fontcolor=0x111827:x=(w-text_w)/2:y=1250{enable}")
+                font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(relation_path))}:fontsize=42:fontcolor=0x111827:x=(w-text_w)/2:y=1250{font}{enable}")
                 text_index += 1
     subtitle_path = str(subtitle_file).replace("\\", "/").replace(":", "\\:")
     filters.append("subtitles=" + subtitle_path + ":force_style='FontName=Microsoft YaHei,FontSize=20,PrimaryColour=&H00111111&,OutlineColour=&H00FFFFFF&,Outline=2,Alignment=2,MarginV=150'")
