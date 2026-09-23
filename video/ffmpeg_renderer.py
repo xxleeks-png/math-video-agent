@@ -83,6 +83,87 @@ def _phase_enable(element, phase: str) -> str:
     return {"enter": enter, "focus": focus, "resolve": resolve}.get(phase, f":enable=between(t\\,{element.start:g}\\,{element.end:g})")
 
 
+def _semantic_motion_filters(element, fontfile: str | None, output: Path, text_index: int) -> list[str]:
+    """Render meaning-bearing motion for semantic math elements."""
+    if element.start is None or element.end is None:
+        return []
+    key = element.semantic_key or ""
+    filters: list[str] = []
+    enter = _phase_enable(element, "enter")
+    focus = _phase_enable(element, "focus")
+    resolve = _phase_enable(element, "resolve")
+    start = element.start
+    end = element.end
+    duration = max(end - start, 0.1)
+    # FFmpeg filter expressions require commas to be escaped inside option values.
+    progress = f"clip((t-{start:g})/{duration:g}\\,0\\,1)"
+
+    if element.type == "tank":
+        filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x2563EB@0.9:t=10{enter}")
+        fill_h = f"180*{progress}"
+        fill_y = f"880-({fill_h})"
+        filters.append(f"drawbox=x=300:y={fill_y}:w=480:h={fill_h}:color=0x60A5FA@0.58:t=fill{focus}")
+        filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x2563EB@1:t=14{resolve}")
+    elif element.type == "rate":
+        side = 180 if element.x < 0.5 else 650
+        direction = 1 if element.x < 0.5 else -1
+        # A moving line plus three arrow-head blocks makes flow direction explicit.
+        travel = f"140*{progress}"
+        if direction > 0:
+            line_x = f"{side}+{travel}"
+            head_x = f"{side}+{travel}+120"
+        else:
+            line_x = f"{side}-{travel}"
+            head_x = f"{side}-{travel}"
+        filters.append(f"drawbox=x={line_x}:y=1068:w=120:h=10:color=0x2563EB@0.75:t=fill{focus}")
+        if direction > 0:
+            filters.append(f"drawbox=x={head_x}:y=1052:w=10:h=42:color=0x2563EB@1:t=fill{focus}")
+        else:
+            filters.append(f"drawbox=x={head_x}:y=1052:w=10:h=42:color=0x2563EB@1:t=fill{focus}")
+        if key == "inlet":
+            filters.append(f"drawbox=x=300:y=1015:w=16:h=55:color=0x2563EB@1:t=fill{enter}")
+        elif key == "outlet":
+            filters.append(f"drawbox=x=765:y=1015:w=16:h=55:color=0x2563EB@1:t=fill{enter}")
+        elif key in {"net_rate", "effective_outflow"}:
+            filters.append(f"drawbox=x=300:y=1030:w=480:h=70:color=0x2563EB@0.18:t=fill{resolve}")
+    elif element.type == "fraction_bar":
+        filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0x111827@1:t=8{enter}")
+        fill_w = f"700*{progress}"
+        filters.append(f"drawbox=x=190:y=560:w={fill_w}:h=180:color=0x60A5FA@0.75:t=fill{focus}")
+        if key == "original":
+            for i in range(1, 4):
+                x = 190 + i * 175
+                filters.append(f"drawbox=x={x}:y=560:w=4:h=180:color=0x94A3B8@1:t=fill{focus}")
+        elif key == "result":
+            filters.append(f"drawbox=x=190:y=550:w=700:h=200:color=0x2563EB@1:t=8{resolve}")
+    elif element.type == "shape":
+        filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0x2563EB@1:t=8{enter}")
+        draw_w = f"580*{progress}"
+        filters.append(f"drawbox=x=250:y=500:w={draw_w}:h=320:color=0xDBEAFE@0.72:t=fill{focus}")
+        filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0x2563EB@1:t=14{resolve}")
+    elif element.type == "dimension":
+        if key == "length":
+            filters.append(f"drawbox=x=250:y=455:w=580:h=8:color=0x2563EB@1:t=fill{focus}")
+            filters.append(f"drawbox=x=250:y=440:w=8:h=38:color=0x2563EB@1:t=fill{enter}")
+            filters.append(f"drawbox=x=822:y=440:w=8:h=38:color=0x2563EB@1:t=fill{resolve}")
+        elif key == "width":
+            filters.append(f"drawbox=x=220:y=500:w=8:h=320:color=0x2563EB@1:t=fill{focus}")
+            filters.append(f"drawbox=x=205:y=500:w=38:h=8:color=0x2563EB@1:t=fill{enter}")
+            filters.append(f"drawbox=x=205:y=812:w=38:h=8:color=0x2563EB@1:t=fill{resolve}")
+    elif key in {"rain_rate"}:
+        for x in (380, 540, 700):
+            drop_y = f"420+180*{progress}"
+            filters.append(f"drawbox=x={x}:y={drop_y}:w=10:h=34:color=0x60A5FA@0.9:t=fill{focus}")
+    elif key in {"net_relation", "formula", "operation"}:
+        filters.append(f"drawbox=x=160:y=1050:w=760:h=8:color=0x94A3B8@0.65:t=fill{enter}")
+        filters.append(f"drawbox=x=500:y=1010:w=8:h=88:color=0x2563EB@0.85:t=fill{focus}")
+        filters.append(f"drawbox=x=150:y=1040:w=780:h=28:color=0x2563EB@0.12:t=fill{resolve}")
+    elif key in {"effective_outflow", "result"}:
+        filters.append(f"drawbox=x=120:y=1180:w=840:h=12:color=0x2563EB@0.9:t=fill{focus}")
+        filters.append(f"drawbox=x=110:y=1160:w=860:h=52:color=0x2563EB@0.14:t=fill{resolve}")
+    return filters
+
+
 def _font_file() -> str | None:
     candidates = [
         "C:/Windows/Fonts/msyh.ttc",
@@ -105,6 +186,7 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
         filters.append(f"drawbox=x=60:y=230:w=960:h=5:color=0x2563EB@1:t=fill:enable=between(t\\,{start}\\,{end})")
         for element in scene.elements:
             if element.type in {"title", "method", "answer", "warning", "summary", "cta", "problem", "text", "formula"}:
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "math_step":
@@ -124,16 +206,18 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                     f"color=0x2563EB@0.9:t=fill{underline}"
                 )
             elif element.type == "tank":
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x60A5FA@0.25:t=10{enable}")
                 duration = max((element.end or 1) - (element.start or 0), 0.1)
-                height_expr = f"180*clip((t-{element.start:g})/{duration:g},0,1)"
+                height_expr = f"180*clip((t-{element.start:g})/{duration:g}\\,0\\,1)"
                 y_expr = f"880-({height_expr})"
                 filters.append(f"drawbox=x=300:y={y_expr}:w=480:h=180:color=0x60A5FA@0.55:t=fill{enable}")
                 tank_path = _write_textfile(output, "tank", "满池水 = 1")
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(tank_path))}:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{font}{enable}")
             elif element.type == "rate":
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 enable = _phase_enable(element, "focus")
                 side = 180 if element.x < 0.5 else 650
                 direction = 1 if element.x < 0.5 else -1
@@ -164,12 +248,14 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "dimension":
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 enable = _phase_enable(element, "focus")
                 label = element.text or "长度"
                 label_path = _write_textfile(output, f"dimension_{element.start:g}", label)
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=42:fontcolor=0x111827:x=820:y=650{font}{enable}")
             elif element.type == "shape":
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0xDBEAFE@0.7:t=fill{enable}")
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0x2563EB@1:t=8{enable}")
@@ -177,9 +263,10 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(shape_path))}:fontsize=52:fontcolor=0x111827:x=(w-text_w)/2:y=610{font}{enable}")
             elif element.type == "fraction_bar":
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 enable = _phase_enable(element, "focus")
                 duration = max((element.end or 1) - (element.start or 0), 0.1)
-                fill_expr = f"350*clip((t-{element.start:g})/{duration:g},0,1)"
+                fill_expr = f"350*clip((t-{element.start:g})/{duration:g}\\,0\\,1)"
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0xE5E7EB@1:t=fill{enable}")
                 filters.append(f"drawbox=x=190:y=560:w={fill_expr}:h=180:color=0x60A5FA@0.75:t=fill{enable}")
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0x111827@1:t=8{enable}")
@@ -188,6 +275,7 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=44:fontcolor=0x111827:x=(w-text_w)/2:y=770{font}{enable}")
             elif element.type == "relation":
+                filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
                 enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=150:y=1077:w=780:h=6:color=0x64748B@1:t=fill{enable}")
                 filters.append(f"drawbox=x=537:y=980:w=6:h=200:color=0x64748B@1:t=fill{enable}")
