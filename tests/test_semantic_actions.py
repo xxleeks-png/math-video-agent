@@ -115,3 +115,18 @@ def test_transform_payload_requires_a_transition():
     ])])
     assert validate_video_document(good)
     assert not validate_video_document(bad)
+
+
+def test_split_action_uses_structured_unit_count():
+    document = VideoDocument(duration=2, scenes=[VideoScene(start=0, end=2, elements=[
+        VideoElement(type="fraction_bar", visual_action="split", action_units=6, start=0.2, end=1.5)
+    ])])
+    assert validate_video_document(document)
+
+
+def test_merge_action_accepts_two_operands():
+    document = VideoDocument(duration=2, scenes=[VideoScene(start=0, end=2, elements=[
+        VideoElement(type="relation", visual_action="merge", action_left="1/4", action_right="1/4",
+                     action_result="1/2", start=0.2, end=1.5)
+    ])])
+    assert validate_video_document(document)
