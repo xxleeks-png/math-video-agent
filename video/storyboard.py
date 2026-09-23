@@ -9,6 +9,27 @@ from .math_visuals import build_math_visuals
 from .narration_visual_map import build_narration_visual_cues
 from agents.mistake_strategy import build_mistake_strategy
 
+
+def _fit_visuals_to_scene(elements, scene_start: float, scene_end: float) -> list[VideoElement]:
+    """Rebase template-relative visual timings into the actual scene window."""
+    timed = [e for e in elements if e.start is not None and e.end is not None and e.end > e.start]
+    if not timed or scene_end <= scene_start:
+        return []
+
+    source_start = min(e.start for e in timed)
+    source_end = max(e.end for e in timed)
+    source_duration = max(source_end - source_start, 0.001)
+    target_duration = max(scene_end - scene_start, 0.001)
+
+    fitted = []
+    for element in timed:
+        relative_start = (element.start - source_start) / source_duration
+        relative_end = (element.end - source_start) / source_duration
+        element.start = scene_start + max(0.0, min(1.0, relative_start)) * target_duration
+        element.end = scene_start + max(0.0, min(1.0, relative_end)) * target_duration
+        fitted.append(element)
+    return fitted
+
 def build_storyboard(solution: MathSolution) -> VideoDocument:
     use_local_llm = os.getenv("USE_LOCAL_LLM_SCRIPT_OPTIMIZER", "0").strip().lower() in {"1", "true", "yes", "on"}
     if use_local_llm:
@@ -19,10 +40,19 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
     timing = {segment.key: segment for segment in plan.segments}
     visual_elements = build_math_visuals(solution)
     mistake = build_mistake_strategy(solution)
+    explain_start = timing["explain"].start
     explain_end = timing["explain"].end
     mistake_start = timing["mistake"].start
     mistake_end = timing["mistake"].end
-    explain_visuals = [e for e in visual_elements if (e.end or 0) <= explain_end]
+
+    # Math visual templates use a reusable local timeline (for example 4-24s).
+    # Rebase that timeline into the actual explanation segment so every
+    # element stays inside its scene regardless of the final short-video plan.
+    explain_visuals = _fit_visuals_to_scene(
+        visual_elements,
+        scene_start=explain_start,
+        scene_end=explain_end,
+    )
     mistake_visuals = [
         VideoElement(type="mistake", text=mistake["mistake"], x=0.5, y=0.48, scale=0.78, start=mistake_start + 0.2, end=mistake_start + 1.8, animation="shake"),
         VideoElement(type="correction", text=mistake["why"], x=0.5, y=0.68, scale=0.76, start=mistake_start + 1.5, end=mistake_start + 3.5, animation="slide"),
