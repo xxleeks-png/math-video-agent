@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import wave
 from pathlib import Path
 from typing import Iterable
 
@@ -45,6 +46,27 @@ def _paths(config: VoiceConfig) -> tuple[str, str]:
     if not script_path:
         raise RuntimeError("未配置 F5_TTS_SCRIPT。")
     return python_executable, script_path
+
+
+def _wav_duration(path: Path) -> float:
+    with wave.open(str(path), "rb") as wav:
+        frames = wav.getnframes()
+        rate = wav.getframerate()
+        return frames / rate if rate else 0.0
+
+
+def _retime_segments(segments: list[AudioSegment], pause: float = 0.08) -> list[AudioSegment]:
+    cursor = 0.0
+    result = []
+    for segment in segments:
+        duration = _wav_duration(Path(segment.audio_path)) if segment.audio_path else 0.0
+        if duration <= 0:
+            duration = max(segment.end - segment.start, 0.1)
+        start = cursor
+        end = start + duration
+        result.append(segment.model_copy(update={"start": start, "end": end}))
+        cursor = end + pause
+    return result
 
 
 def synthesize_batch(
@@ -134,6 +156,7 @@ def synthesize_batch(
             f"缺少：{missing}。\nstdout:\n{stdout}\nstderr:\n{stderr}"
         )
 
+    result_segments = _retime_segments(result_segments)
     return TTSBatchResult(segments=result_segments, output_dir=str(output))
 
 
