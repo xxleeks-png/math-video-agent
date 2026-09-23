@@ -13,43 +13,55 @@ class NarrationVisualCue:
     text: str = ""
 
 
+def _split_sentences(text: str) -> list[str]:
+    import re
+    parts = [p.strip() for p in re.split(r"(?<=[。！？；])\\s*", text or "") if p.strip()]
+    return parts or [text.strip()] if text.strip() else []
+
+
 def build_narration_visual_cues(document) -> list[NarrationVisualCue]:
-    """Build a one-to-one narration/action map from the already validated storyboard."""
+    """Map each spoken sentence to a concrete visual action and time slice."""
     cues: list[NarrationVisualCue] = []
+    keys = ("hook", "explain", "mistake", "summary")
+
     for index, scene in enumerate(document.scenes):
-        key = ("hook", "explain", "mistake", "summary")[index] if index < 4 else f"scene_{index+1}"
+        key = keys[index] if index < len(keys) else f"scene_{index + 1}"
+        sentences = _split_sentences(scene.narration)
         elements = [e for e in scene.elements if e.start is not None and e.end is not None]
-        if not elements:
-            cues.append(
-                NarrationVisualCue(
-                    scene_key=key,
-                    start=scene.start,
-                    end=scene.end,
-                    narration=scene.narration,
-                    action="hold",
-                    element_type="text",
-                )
-            )
+
+        if not sentences:
             continue
 
-        # Split narration across visual cues so every spoken unit has an explicit action.
-        words = max(1, len(scene.narration.split()))
-        cursor = scene.start
-        for i, element in enumerate(elements):
-            remaining = len(elements) - i
-            available = scene.end - cursor
-            slice_duration = available / remaining
-            cue_end = min(scene.end, cursor + slice_duration)
+        # Use the visual elements as the action track; each spoken sentence gets
+        # its own cue. If there are more sentences than elements, reuse the last
+        # visual action instead of leaving narration visually unsupported.
+        for sentence_index, sentence in enumerate(sentences):
+            if elements:
+                element = elements[min(sentence_index, len(elements) - 1)]
+                action = element.animation or "hold"
+                element_type = element.type
+                text = element.text or element.value or ""
+                start = max(scene.start, element.start)
+                end = min(scene.end, element.end)
+            else:
+                action = "hold"
+                element_type = "text"
+                text = ""
+                start, end = scene.start, scene.end
+
+            if end <= start:
+                start, end = scene.start, scene.end
+
             cues.append(
                 NarrationVisualCue(
                     scene_key=key,
-                    start=cursor,
-                    end=cue_end,
-                    narration=scene.narration if i == 0 else "",
-                    action=element.animation or "hold",
-                    element_type=element.type,
-                    text=element.text or element.value or "",
+                    start=start,
+                    end=end,
+                    narration=sentence,
+                    action=action,
+                    element_type=element_type,
+                    text=text,
                 )
             )
-            cursor = cue_end
+
     return cues
