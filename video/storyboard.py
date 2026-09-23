@@ -1,27 +1,11 @@
 from agents.teacher import generate_teacher_script
 from math_engine.models import MathSolution
 from .dsl import VideoDocument, VideoScene, VideoElement, validate_video_document
-
-def _math_elements(solution: MathSolution) -> list[VideoElement]:
-    elements = []
-    for i, step in enumerate(solution.steps[:5]):
-        start = 6 + i * 3.2
-        end = start + 3.0
-        elements.append(VideoElement(
-            type="math_step",
-            text=step,
-            x=0.5,
-            y=0.44 + (i % 3) * 0.14,
-            scale=1.0 if i == len(solution.steps[:5]) - 1 else 0.88,
-            emphasis=i == len(solution.steps[:5]) - 1,
-            start=start,
-            end=end,
-            animation="fade_slide",
-        ))
-    return elements
+from .math_visuals import build_math_visuals
 
 def build_storyboard(solution: MathSolution) -> VideoDocument:
     script = generate_teacher_script(solution)
+    visual_elements = build_math_visuals(solution)
     scenes = [
         VideoScene(
             start=0, end=4,
@@ -35,7 +19,7 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
             start=4, end=24,
             elements=[
                 VideoElement(type="method", text=script["key_method"], x=0.5, y=0.18, emphasis=True, start=4, end=24, animation="fade"),
-                *_math_elements(solution),
+                *visual_elements,
             ],
             narration=" ".join(script["explanation"][:6]),
             subtitle=" ".join(script["explanation"][:3]),
