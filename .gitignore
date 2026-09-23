@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.vscode/
+.idea/
+.DS_Store
+*.mp4
+*.mov
+*.wav
+*.mp3
