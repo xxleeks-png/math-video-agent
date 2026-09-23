@@ -24,11 +24,6 @@ def prepare_display_text(text: str, max_chars: int = 18) -> tuple[str, int]:
 
 
 def cleanup_render_text_files(output_dir: str) -> None:
-    for path in Path(output_dir).glob(".*_text_*.txt"):
-        path.unlink(missing_ok=True)
-    for path in Path(output_dir).glob(".*_relation_*.txt"):
-        path.unlink(missing_ok=True)
-    for path in Path(output_dir).glob(".*_tank.txt"):
-        path.unlink(missing_ok=True)
-    for path in Path(output_dir).glob(".*_shape.txt"):
+    # Render-time helper files are hidden and live only in the output directory.
+    for path in Path(output_dir).glob(".*_*.txt"):
         path.unlink(missing_ok=True)
