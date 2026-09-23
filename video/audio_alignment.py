@@ -64,6 +64,11 @@ def align_document_to_sentence_audio(document: VideoDocument, audio_segments: li
         for element in scene.elements:
             if element.start is None or element.end is None:
                 continue
+            if element.cue_id:
+                cue = next((c for c in scene_cues if c.get("segment_id") == element.cue_id), None)
+                if cue:
+                    element.start, element.end = cue["start"], cue["end"]
+                    continue
             old_start, old_end = element.start, element.end
             overlaps = [cue for cue in scene_cues if not (cue["end"] <= old_start or cue["start"] >= old_end)]
             if overlaps:
