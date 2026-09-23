@@ -69,5 +69,17 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
     if not validate_video_document(document):
         raise ValueError("生成的视频 DSL 未通过时间轴校验")
     cues = build_narration_visual_cues(document)
+    cues_by_scene = {}
+    for cue in cues:
+        cues_by_scene.setdefault(cue.scene_key, []).append(cue)
+    scene_keys = ("hook", "explain", "mistake", "summary")
+    for scene_index, scene in enumerate(document.scenes):
+        key = scene_keys[scene_index] if scene_index < len(scene_keys) else f"scene_{scene_index + 1}"
+        timed_elements = [e for e in scene.elements if e.start is not None and e.end is not None]
+        for cue_index, cue in enumerate(cues_by_scene.get(key, [])):
+            if timed_elements:
+                element = timed_elements[min(cue_index, len(timed_elements) - 1)]
+                element.cue_id = cue.segment_id
+                element.action_phase = "focus"
     document = document.model_copy(update={"visual_cues": [cue.__dict__ for cue in cues]})
     return document
