@@ -10,6 +10,8 @@ from video.ffmpeg_renderer import render_mp4
 from video.storyboard import build_storyboard
 from video.voice_timeline import synthesize_voice_timeline
 from video.audio_alignment import align_document_to_sentence_audio
+from video.dsl import validate_video_document
+from video.qa import validate_audio_visual_alignment
 from tts.models import VoiceConfig
 
 
@@ -41,6 +43,10 @@ def generate_video(problem: str, output_dir: str = "output", voice_config: Voice
     # old scene-level retimer afterward, because it would collapse multiple
     # sentence segments into the first few scenes.
     document = align_document_to_sentence_audio(document, audio_result.segments)
+    if not validate_video_document(document):
+        raise ValueError("语音对齐后的视频 DSL 未通过时间轴校验。")
+    if not validate_audio_visual_alignment(document, audio_result.segments):
+        raise ValueError("最终音画对齐 QA 未通过，已停止渲染。")
 
     video_path = render_mp4(
         document,
