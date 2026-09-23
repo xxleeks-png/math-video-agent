@@ -1,10 +1,17 @@
 from agents.script_selector import select_teacher_script
+from agents.local_script_optimizer import select_teacher_script_with_local_llm
+from llm.models import LLMConfig
+import os
 from math_engine.models import MathSolution
 from .dsl import VideoDocument, VideoScene, VideoElement, validate_video_document
 from .math_visuals import build_math_visuals
 
 def build_storyboard(solution: MathSolution) -> VideoDocument:
-    script = select_teacher_script(solution)
+    use_local_llm = os.getenv("USE_LOCAL_LLM_SCRIPT_OPTIMIZER", "0").strip().lower() in {"1", "true", "yes", "on"}
+    if use_local_llm:
+        script = select_teacher_script_with_local_llm(solution, target_duration=40, config=LLMConfig())
+    else:
+        script = select_teacher_script(solution)
     visual_elements = build_math_visuals(solution)
     scenes = [
         VideoScene(
