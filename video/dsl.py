@@ -12,6 +12,8 @@ class VideoElement(BaseModel):
     start: Optional[float] = None
     end: Optional[float] = None
     animation: Optional[str] = None
+    cue_id: Optional[str] = None
+    action_phase: Optional[str] = None
 
 class VideoScene(BaseModel):
     start: float
