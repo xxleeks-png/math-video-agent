@@ -13,6 +13,8 @@ class NarrationVisualCue:
     text: str = ""
     segment_id: str = ""
     sentence_index: int = 0
+    action_phase: str = "hold"
+    emphasis_token: str = ""
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -71,7 +73,40 @@ def build_narration_visual_cues(document) -> list[NarrationVisualCue]:
                     element_type=element_type,
                     text=text,
                     segment_id=f"{key}_{sentence_index + 1}",
+                    sentence_index=sentence_index,
                 )
             )
 
     return cues
+
+
+def build_sentence_action_cues(document) -> list[NarrationVisualCue]:
+    """Expand each sentence into start/mid/end micro-actions."""
+    base = build_narration_visual_cues(document)
+    expanded: list[NarrationVisualCue] = []
+    for cue in base:
+        duration = max(cue.end - cue.start, 0.1)
+        phases = (
+            ("enter", cue.start, cue.start + duration * 0.25),
+            ("focus", cue.start + duration * 0.25, cue.start + duration * 0.75),
+            ("resolve", cue.start + duration * 0.75, cue.end),
+        )
+        for phase, start, end in phases:
+            if end <= start:
+                continue
+            expanded.append(
+                NarrationVisualCue(
+                    scene_key=cue.scene_key,
+                    start=start,
+                    end=end,
+                    narration=cue.narration,
+                    action=cue.action,
+                    element_type=cue.element_type,
+                    text=cue.text,
+                    segment_id=cue.segment_id,
+                    sentence_index=cue.sentence_index,
+                    action_phase=phase,
+                    emphasis_token=cue.text if phase == "focus" else "",
+                )
+            )
+    return expanded
