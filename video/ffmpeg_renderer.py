@@ -72,8 +72,8 @@ def _visual_filter(document: VideoDocument, subtitle_file: Path) -> str:
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0x111827@1:t=8{enable}")
             elif element.type == "relation":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
-                filters.append(f"drawline=x1=150:y1=1080:x2=930:y2=1080:color=0x64748B@1:thickness=6{enable}")
-                filters.append(f"drawline=x1=540:y1=980:x2=540:y2=1180:color=0x64748B@1:thickness=6{enable}")
+                filters.append(f"drawbox=x=150:y=1077:w=780:h=6:color=0x64748B@1:t=fill{enable}")
+                filters.append(f"drawbox=x=537:y=980:w=6:h=200:color=0x64748B@1:t=fill{enable}")
                 filters.append(f"drawtext=text={_escape_text(element.text or '')}:fontsize=42:fontcolor=0x111827:x=(w-text_w)/2:y=1250{enable}")
     subtitle_path = str(subtitle_file).replace("\\", "/").replace(":", "\\:")
     filters.append("subtitles=" + subtitle_path + ":force_style='FontName=Microsoft YaHei,FontSize=20,PrimaryColour=&H00111111&,OutlineColour=&H00FFFFFF&,Outline=2,Alignment=2,MarginV=150'")
