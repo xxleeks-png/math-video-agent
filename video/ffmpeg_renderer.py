@@ -113,7 +113,7 @@ def _semantic_action_filters(element) -> list[str]:
             gap = 4
             total_w = units * cell_w + (units - 1) * gap
             base_x = int((1080 - total_w) / 2)
-            y = 1125
+            y = 1280
             for i in range(units):
                 color = "0x2563EB@0.78" if i < selected else "0xE5E7EB@1"
                 filters.append(
@@ -167,6 +167,34 @@ def _semantic_action_filters(element) -> list[str]:
         travel = f"500*{progress}"
         filters.append(f"drawbox=x=260+{travel}:y=1210:w=160:h=12:color=0x2563EB@0.8:t=fill{focus}")
         filters.append(f"drawbox=x=760:y=1190:w=12:h=52:color=0x2563EB@0.9:t=fill{resolve}")
+    return filters
+
+def _semantic_action_text_filters(element, output: Path, fontfile: str | None, text_index: int) -> list[str]:
+    """Add readable labels for structured semantic actions."""
+    if element.visual_action != "subtract" or not (
+        element.action_units and
+        element.action_selected is not None and
+        element.action_removed is not None and
+        element.action_remaining is not None
+    ):
+        return []
+    if element.start is None or element.end is None:
+        return []
+    enter, focus, resolve = _phase_windows(element)
+    font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+    labels = [
+        ("action_before", "1/8 = 3/24", enter, 1185),
+        ("action_remove", f"− {element.action_removed}/{element.action_units}", focus, 1185),
+        ("action_after", f"剩 {element.action_remaining}/{element.action_units} = 1/12", resolve, 1395),
+    ]
+    filters = []
+    for name, text, enable, y in labels:
+        path = _write_textfile(output, f"{name}_{text_index}", text)
+        filters.append(
+            f"drawtext=textfile={_escape_filter_path(str(path))}:fontsize=46:"
+            f"fontcolor=0x111827:x=(w-text_w)/2:y={y}:"
+            f"box=1:boxcolor=white@0.92:boxborderw=12{font}{enable}"
+        )
     return filters
 
 def _semantic_motion_filters(element, fontfile: str | None, output: Path, text_index: int) -> list[str]:
@@ -284,6 +312,7 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
         for element in scene.elements:
             if element.type in {"title", "method", "answer", "warning", "summary", "cta", "problem", "text", "formula"}:
                 filters.extend(_semantic_motion_filters(element, fontfile, output, text_index))
+                filters.extend(_semantic_action_text_filters(element, output, fontfile, text_index))
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "math_step":
