@@ -19,6 +19,7 @@ class VideoScene(BaseModel):
     elements: List[VideoElement] = Field(default_factory=list)
     narration: str = ""
     subtitle: str = ""
+    visual_cues: List[dict] = Field(default_factory=list)
 
 class VideoDocument(BaseModel):
     version: str = "0.8.0"
