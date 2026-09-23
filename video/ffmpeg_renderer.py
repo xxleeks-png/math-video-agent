@@ -159,8 +159,14 @@ def _semantic_motion_filters(element, fontfile: str | None, output: Path, text_i
         filters.append(f"drawbox=x=500:y=1010:w=8:h=88:color=0x2563EB@0.85:t=fill{focus}")
         filters.append(f"drawbox=x=150:y=1040:w=780:h=28:color=0x2563EB@0.12:t=fill{resolve}")
     elif key in {"effective_outflow", "result"}:
+        # Resolve a subtraction/result visually: show the retained amount after the deduction.
         filters.append(f"drawbox=x=120:y=1180:w=840:h=12:color=0x2563EB@0.9:t=fill{focus}")
         filters.append(f"drawbox=x=110:y=1160:w=860:h=52:color=0x2563EB@0.14:t=fill{resolve}")
+        if key == "effective_outflow":
+            # The red segment represents the amount removed (1/24) before the blue
+            # remainder (1/12) is locked in.
+            filters.append(f"drawbox=x=700:y=1140:w=220:h=48:color=0xEF4444@0.42:t=fill{focus}")
+            filters.append(f"drawbox=x=120:y=1140:w=580:h=48:color=0x60A5FA@0.72:t=fill{resolve}")
     return filters
 
 
