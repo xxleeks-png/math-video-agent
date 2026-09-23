@@ -76,3 +76,42 @@ def test_dsl_rejects_inconsistent_counts():
         ],
     )
     assert not validate_video_document(document)
+
+
+def test_fraction_addition_does_not_use_subtraction_counts():
+    operation = next(e for e in build_math_visuals(solve("3/4 + 1/4")) if e.semantic_key == "operation")
+    assert operation.visual_action == "add"
+    assert operation.action_units == 4
+    assert operation.action_ratio == 0.25
+    assert operation.action_selected is None
+    assert operation.action_removed is None
+    assert operation.action_remaining is None
+
+
+def test_structured_semantic_operands_are_available():
+    operation = next(e for e in build_math_visuals(solve("2/3 - 1/3")) if e.semantic_key == "operation")
+    assert operation.action_left == "2/3"
+    assert operation.action_right == "1/3"
+    assert operation.action_result == "1/3"
+
+
+def test_compare_payload_requires_both_sides():
+    good = VideoDocument(duration=2, scenes=[VideoScene(start=0, end=2, elements=[
+        VideoElement(type="relation", visual_action="compare", action_left="3/4", action_right="2/4", start=0.2, end=1.5)
+    ])])
+    bad = VideoDocument(duration=2, scenes=[VideoScene(start=0, end=2, elements=[
+        VideoElement(type="relation", visual_action="compare", action_left="3/4", start=0.2, end=1.5)
+    ])])
+    assert validate_video_document(good)
+    assert not validate_video_document(bad)
+
+
+def test_transform_payload_requires_a_transition():
+    good = VideoDocument(duration=2, scenes=[VideoScene(start=0, end=2, elements=[
+        VideoElement(type="formula", visual_action="transform", action_from="厘米", action_to="米", start=0.2, end=1.5)
+    ])])
+    bad = VideoDocument(duration=2, scenes=[VideoScene(start=0, end=2, elements=[
+        VideoElement(type="formula", visual_action="transform", start=0.2, end=1.5)
+    ])])
+    assert validate_video_document(good)
+    assert not validate_video_document(bad)
