@@ -49,7 +49,7 @@ def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) 
         enable = f":enable=between(t\\,{start:g}\\,{end:g})"
         duration = max(end - start, 0.1)
         # enter: quick fade/scale-in, focus: stable, resolve: slight fade-out.
-        phase = element.action_phase or "hold"
+        phase = element.action_phase or "auto"
         if phase == "enter":
             progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g},0,1)"
             alpha = f":alpha={progress}"
@@ -57,8 +57,31 @@ def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) 
             fade_start = start + duration * 0.75
             progress = f"1-0.35*clip((t-{fade_start:g})/{max(duration * 0.25, 0.1):g},0,1)"
             alpha = f":alpha={progress}"
+        elif phase == "auto":
+            progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g},0,1)"
+            alpha = f":alpha={progress}"
     font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
     return f"drawtext=textfile={path}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{alpha}{enable}"
+
+def _phase_windows(element) -> tuple[str, str, str]:
+    """Return FFmpeg enable expressions for enter/focus/resolve."""
+    start = element.start if element.start is not None else 0.0
+    end = element.end if element.end is not None else start + 1.0
+    duration = max(end - start, 0.1)
+    enter_end = start + min(duration * 0.25, 0.35)
+    resolve_start = start + duration * 0.75
+    enter = f":enable=between(t\\,{start:g}\\,{enter_end:g})"
+    focus = f":enable=between(t\\,{enter_end:g}\\,{resolve_start:g})"
+    resolve = f":enable=between(t\\,{resolve_start:g}\\,{end:g})"
+    return enter, focus, resolve
+
+
+def _phase_enable(element, phase: str) -> str:
+    if element.action_phase and element.action_phase not in {"auto", "hold"}:
+        return f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+    enter, focus, resolve = _phase_windows(element)
+    return {"enter": enter, "focus": focus, "resolve": resolve}.get(phase, f":enable=between(t\\,{element.start:g}\\,{element.end:g})")
+
 
 def _font_file() -> str | None:
     candidates = [
@@ -101,7 +124,7 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                     f"color=0x2563EB@0.9:t=fill{underline}"
                 )
             elif element.type == "tank":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x60A5FA@0.25:t=10{enable}")
                 duration = max((element.end or 1) - (element.start or 0), 0.1)
                 height_expr = f"180*clip((t-{element.start:g})/{duration:g},0,1)"
@@ -111,7 +134,7 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(tank_path))}:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{font}{enable}")
             elif element.type == "rate":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 side = 180 if element.x < 0.5 else 650
                 direction = 1 if element.x < 0.5 else -1
                 filters.append(f"drawbox=x={side}:y=1080:w=250:h=12:color=0x2563EB@0.85:t=fill{enable}")
@@ -126,13 +149,13 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 )
                 text_index += 1
             elif element.type == "mistake":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=110:y=1450:w=860:h=150:color=0xFEE2E2@0.96:t=fill{enable}")
                 filters.append(f"drawbox=x=110:y=1450:w=860:h=150:color=0xB91C1C@1:t=8{enable}")
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "correction":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=100:y=1280:w=880:h=180:color=0xDBEAFE@0.96:t=fill{enable}")
                 filters.append(f"drawbox=x=100:y=1280:w=880:h=180:color=0x2563EB@1:t=8{enable}")
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
@@ -141,20 +164,20 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "dimension":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 label = element.text or "长度"
                 label_path = _write_textfile(output, f"dimension_{element.start:g}", label)
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=42:fontcolor=0x111827:x=820:y=650{font}{enable}")
             elif element.type == "shape":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0xDBEAFE@0.7:t=fill{enable}")
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0x2563EB@1:t=8{enable}")
                 shape_path = _write_textfile(output, "shape", "长方形")
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(shape_path))}:fontsize=52:fontcolor=0x111827:x=(w-text_w)/2:y=610{font}{enable}")
             elif element.type == "fraction_bar":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 duration = max((element.end or 1) - (element.start or 0), 0.1)
                 fill_expr = f"350*clip((t-{element.start:g})/{duration:g},0,1)"
                 filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0xE5E7EB@1:t=fill{enable}")
@@ -165,7 +188,7 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
                 filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=44:fontcolor=0x111827:x=(w-text_w)/2:y=770{font}{enable}")
             elif element.type == "relation":
-                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                enable = _phase_enable(element, "focus")
                 filters.append(f"drawbox=x=150:y=1077:w=780:h=6:color=0x64748B@1:t=fill{enable}")
                 filters.append(f"drawbox=x=537:y=980:w=6:h=200:color=0x64748B@1:t=fill{enable}")
                 relation_path = _write_textfile(output, f"relation_{text_index}", element.text or "")
