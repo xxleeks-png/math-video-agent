@@ -83,12 +83,60 @@ def _phase_enable(element, phase: str) -> str:
     return {"enter": enter, "focus": focus, "resolve": resolve}.get(phase, f":enable=between(t\\,{element.start:g}\\,{element.end:g})")
 
 
+def _semantic_action_filters(element) -> list[str]:
+    """Translate DSL-level meaning into reusable motion primitives."""
+    if element.start is None or element.end is None or not element.visual_action:
+        return []
+    action = element.visual_action
+    start, end = element.start, element.end
+    duration = max(end - start, 0.1)
+    progress = f"clip((t-{start:g})/{duration:g}\\\\,0\\\\,1)"
+    enter = f":enable=between(t\\\\,{start:g}\\\\,{start + min(duration * 0.25, 0.35):g})"
+    focus = f":enable=between(t\\\\,{start + min(duration * 0.25, 0.35):g}\\\\,{start + duration * 0.75:g})"
+    resolve = f":enable=between(t\\\\,{start + duration * 0.75:g}\\\\,{end:g})"
+    filters: list[str] = []
+
+    # All primitives use the same coordinate language so new problem types can
+    # select an action without teaching the renderer a new problem-specific rule.
+    if action == "add":
+        travel = f"620*{progress}"
+        filters.append(f"drawbox=x=120+{travel}:y=1210:w=180:h=42:color=0x60A5FA@0.72:t=fill{focus}")
+    elif action == "subtract":
+        ratio = element.action_ratio if element.action_ratio is not None else 0.25
+        width = max(80, min(360, int(720 * ratio)))
+        travel = f"{width}*{progress}"
+        filters.append(f"drawbox=x=840-{travel}:y=1210:w={width}:h=42:color=0xEF4444@0.55:t=fill{focus}")
+        filters.append(f"drawbox=x=840:y=1202:w={width}:h=58:color=0xEF4444@0.22:t=fill{resolve}")
+    elif action == "equal":
+        filters.append(f"drawbox=x=360:y=1195:w=360:h=72:color=0x2563EB@0.18:t=fill{enter}")
+        filters.append(f"drawbox=x=360:y=1195:w=360:h=72:color=0x2563EB@0.9:t=7{resolve}")
+    elif action == "compare":
+        filters.append(f"drawbox=x=170:y=1210:w=300:h=24:color=0x60A5FA@0.75:t=fill{focus}")
+        filters.append(f"drawbox=x=610:y=1210:w=300:h=24:color=0x94A3B8@0.75:t=fill{focus}")
+    elif action == "split":
+        for x in (350, 530, 710):
+            filters.append(f"drawbox=x={x}:y=1160:w=5:h=110:color=0x64748B@0.9:t=fill{focus}")
+    elif action == "merge":
+        left = f"160+220*(1-{progress})"
+        right = f"700-220*(1-{progress})"
+        filters.append(f"drawbox=x={left}:y=1210:w=180:h=42:color=0x60A5FA@0.72:t=fill{focus}")
+        filters.append(f"drawbox=x={right}:y=1210:w=180:h=42:color=0x60A5FA@0.72:t=fill{focus}")
+    elif action == "highlight":
+        filters.append(f"drawbox=x=140:y=1160:w=800:h=110:color=0x2563EB@0.16:t=fill{focus}")
+        filters.append(f"drawbox=x=140:y=1160:w=800:h=110:color=0x2563EB@0.75:t=6{resolve}")
+    elif action == "transform":
+        travel = f"500*{progress}"
+        filters.append(f"drawbox=x=260+{travel}:y=1210:w=160:h=12:color=0x2563EB@0.8:t=fill{focus}")
+        filters.append(f"drawbox=x=760:y=1190:w=12:h=52:color=0x2563EB@0.9:t=fill{resolve}")
+    return filters
+
+
 def _semantic_motion_filters(element, fontfile: str | None, output: Path, text_index: int) -> list[str]:
     """Render meaning-bearing motion for semantic math elements."""
     if element.start is None or element.end is None:
         return []
     key = element.semantic_key or ""
-    filters: list[str] = []
+    filters: list[str] = _semantic_action_filters(element)
     enter = _phase_enable(element, "enter")
     focus = _phase_enable(element, "focus")
     resolve = _phase_enable(element, "resolve")
