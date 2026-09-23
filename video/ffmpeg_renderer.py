@@ -68,7 +68,18 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
         filters.append(f"drawbox=x=60:y=80:w=960:h=130:color=0x111827@0.96:t=fill:enable=between(t\\,{start}\\,{end})")
         filters.append(f"drawbox=x=60:y=230:w=960:h=5:color=0x2563EB@1:t=fill:enable=between(t\\,{start}\\,{end})")
         for element in scene.elements:
-            if element.type in {"title", "method", "math_step", "answer", "warning", "summary", "cta", "problem", "text", "rate", "formula"}:
+            if element.type in {"title", "method", "answer", "warning", "summary", "cta", "problem", "text", "formula"}:
+                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
+                text_index += 1
+            elif element.type == "math_step":
+                filters.append(_textfile_drawtext(element, output, fontfile, text_index))
+                text_index += 1
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                # Staged underline gives each calculation step a visual focus.
+                filters.append(
+                    f"drawbox=x=210:y={int((element.y or 0.5)*1920 + 55)}:w=660:h=6:"
+                    f"color=0x2563EB@0.9:t=fill{enable}"
+                )
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "tank":
