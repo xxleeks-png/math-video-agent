@@ -19,8 +19,6 @@ class VideoScene(BaseModel):
     elements: List[VideoElement] = Field(default_factory=list)
     narration: str = ""
     subtitle: str = ""
-    visual_cues: List[dict] = Field(default_factory=list)
-
 class VideoDocument(BaseModel):
     version: str = "0.8.0"
     width: int = 1080
@@ -28,6 +26,7 @@ class VideoDocument(BaseModel):
     fps: int = 30
     duration: float
     scenes: List[VideoScene]
+    visual_cues: List[dict] = Field(default_factory=list)
 
 def validate_video_document(document: VideoDocument) -> bool:
     if document.width <= 0 or document.height <= 0 or document.fps <= 0:
@@ -48,4 +47,12 @@ def validate_video_document(document: VideoDocument) -> bool:
             if element.end is not None and element.start is not None and element.end <= element.start:
                 return False
         previous_end = scene.end
+    for cue in document.visual_cues:
+        try:
+            if cue["start"] < 0 or cue["end"] <= cue["start"] or cue["end"] > document.duration:
+                return False
+            if not str(cue.get("narration", "")).strip() or not str(cue.get("action", "")).strip():
+                return False
+        except (KeyError, TypeError):
+            return False
     return True
