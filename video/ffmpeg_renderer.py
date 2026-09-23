@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .dsl import VideoDocument
 from tts.models import AudioSegment
+from .text_layout import prepare_display_text, cleanup_render_text_files
 
 def _stamp(seconds: float) -> str:
     ms = int(round(seconds * 1000))
@@ -32,11 +33,12 @@ def _write_textfile(output: Path, name: str, text: str) -> Path:
 
 
 def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) -> str:
-    text_path = _write_textfile(output, f"text_{index}", element.text or element.value or "")
+    display_text, size = prepare_display_text(element.text or element.value or "", max_chars=18)
+    text_path = _write_textfile(output, f"text_{index}", display_text)
     path = _escape_filter_path(str(text_path))
     x = f"(w-text_w)*{element.x:.3f}"
     y = f"h*{element.y:.3f}-text_h/2"
-    size = int(48 * max(0.7, min(1.8, element.scale)))
+    size = int(size * max(0.7, min(1.8, element.scale)))
     color = "white" if element.emphasis else "0x111827"
     box = "box=1:boxcolor=0xFFFFFF@0.92:boxborderw=18" if not element.emphasis else "box=1:boxcolor=0x111827@0.96:boxborderw=22"
     enable = ""
@@ -127,4 +129,5 @@ def render_mp4(document: VideoDocument, output_path: str = "output/math_video.mp
     except subprocess.CalledProcessError as exc:
         detail = (exc.stderr or exc.stdout or "")[-4000:]
         raise RuntimeError(f"FFmpeg 渲染失败：\n{detail}") from exc
+    cleanup_render_text_files(output.parent)
     return str(output)
