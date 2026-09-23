@@ -1,10 +1,10 @@
-from agents.teacher import generate_teacher_script
+from agents.script_selector import select_teacher_script
 from math_engine.models import MathSolution
 from .dsl import VideoDocument, VideoScene, VideoElement, validate_video_document
 from .math_visuals import build_math_visuals
 
 def build_storyboard(solution: MathSolution) -> VideoDocument:
-    script = generate_teacher_script(solution)
+    script = select_teacher_script(solution)
     visual_elements = build_math_visuals(solution)
     scenes = [
         VideoScene(
