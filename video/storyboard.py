@@ -110,6 +110,7 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
             if timed_elements:
                 element = timed_elements[min(cue_index, len(timed_elements) - 1)]
                 element.cue_id = cue.segment_id
-                element.action_phase = "focus"
+                # Renderer owns the enter/focus/resolve micro-timeline.
+                element.action_phase = "auto"
     document = document.model_copy(update={"visual_cues": [cue.__dict__ for cue in cues]})
     return document
