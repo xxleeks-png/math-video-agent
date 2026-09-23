@@ -20,7 +20,7 @@ def _water(solution: MathSolution) -> list[VideoElement]:
         VideoElement(type="relation", semantic_key="net_relation", text="进水 + 雨水 − 出水 = 净变化", x=0.5, y=0.78, scale=0.82, start=12, end=17, animation="fade", visual_action="transform", action_target="net_change"),
         VideoElement(type="rate", semantic_key="net_rate", text="雨天净变化：1/12", x=0.5, y=0.70, start=14, end=18, animation="pop", emphasis=True, visual_action="equal", action_target="net_change", action_value="1/12", action_ratio=1/12),
         VideoElement(type="formula", semantic_key="rain_rate", text="雨水速度 = 1/12 + 1/8 − 1/6 = 1/24", x=0.5, y=0.50, scale=0.82, start=17, end=21, animation="fade", visual_action="add", action_target="rain", action_value="1/24", action_ratio=1/24),
-        VideoElement(type="formula", semantic_key="effective_outflow", text="实际排水速度 = 1/8 − 1/24 = 1/12", x=0.5, y=0.62, scale=0.86, start=20, end=24, animation="fade", emphasis=True, visual_action="subtract", action_target="outflow", action_value="1/24", action_ratio=1/24),
+        VideoElement(type="formula", semantic_key="effective_outflow", text="实际排水速度 = 1/8 − 1/24 = 1/12", x=0.5, y=0.62, scale=0.86, start=20, end=24, animation="fade", emphasis=True, visual_action="subtract", action_target="outflow", action_value="1/24", action_ratio=1/24, action_units=24, action_selected=3, action_removed=1, action_remaining=2),
     ]
 
 
