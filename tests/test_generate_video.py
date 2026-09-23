@@ -4,18 +4,21 @@ from tts.models import AudioSegment, TTSBatchResult
 
 def test_generate_video_orchestration(monkeypatch, tmp_path):
     def fake_tts(document, config, output_dir):
-        return TTSBatchResult(
-            segments=[
+        segments = []
+        cursor = 0.0
+        for index, cue in enumerate(document.visual_cues):
+            end = cursor + 1.0
+            segments.append(
                 AudioSegment(
-                    text=document.scenes[0].narration,
-                    start=0,
-                    end=4,
-                    segment_id="step1",
-                    audio_path=str(tmp_path / "step1.wav"),
+                    text=cue["narration"],
+                    start=cursor,
+                    end=end,
+                    segment_id=cue["segment_id"],
+                    audio_path=str(tmp_path / f"step{index + 1}.wav"),
                 )
-            ],
-            output_dir=output_dir,
-        )
+            )
+            cursor = end
+        return TTSBatchResult(segments=segments, output_dir=output_dir)
 
     def fake_render(document, output_path, audio_segments=None):
         assert audio_segments
