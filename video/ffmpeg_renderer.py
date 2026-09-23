@@ -51,11 +51,11 @@ def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) 
         # enter: quick fade/scale-in, focus: stable, resolve: slight fade-out.
         phase = element.action_phase or "auto"
         if phase == "enter":
-            progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g},0,1)"
+            progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g}\\,0\\,1)"
             alpha = f":alpha={progress}"
         elif phase == "resolve":
             fade_start = start + duration * 0.75
-            progress = f"1-0.35*clip((t-{fade_start:g})/{max(duration * 0.25, 0.1):g},0,1)"
+            progress = f"1-0.35*clip((t-{fade_start:g})/{max(duration * 0.25, 0.1):g}\\,0\\,1)"
             alpha = f":alpha={progress}"
         elif phase == "auto":
             progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g},0,1)"
