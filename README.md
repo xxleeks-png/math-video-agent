@@ -34,3 +34,7 @@ uvicorn backend.main:app --reload
 4. 生成小学老师口吻的多版本讲解
 5. 建立 Video DSL
 6. 接入 TTS、字幕和 Manim/FFmpeg 渲染
+
+## 第一条样片
+
+Windows 用户可以直接双击 scripts/run_sample.bat，无需手动输入长命令。它会生成 output/sample_01/math_video.mp4，并使用当前本地数学求解、分镜、F5-TTS、音画对齐、QA 和 FFmpeg 链路。
