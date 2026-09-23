@@ -11,6 +11,7 @@ class NarrationVisualCue:
     action: str
     element_type: str
     text: str = ""
+    segment_id: str = ""
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -35,7 +36,14 @@ def build_narration_visual_cues(document) -> list[NarrationVisualCue]:
         # Use the visual elements as the action track; each spoken sentence gets
         # its own cue. If there are more sentences than elements, reuse the last
         # visual action instead of leaving narration visually unsupported.
+        total_weight = sum(max(len(s), 1) for s in sentences)
+        cursor = scene.start
         for sentence_index, sentence in enumerate(sentences):
+            weight = max(len(sentence), 1) / total_weight
+            allocated_end = scene.start + (scene.end - scene.start) * (cursor - scene.start + (scene.end - scene.start) * weight) / (scene.end - scene.start) if scene.end > scene.start else scene.end
+            cue_start = cursor
+            cue_end = scene.end if sentence_index == len(sentences) - 1 else min(scene.end, allocated_end)
+            cursor = cue_end
             if elements:
                 element = elements[min(sentence_index, len(elements) - 1)]
                 action = element.animation or "hold"
@@ -61,6 +69,7 @@ def build_narration_visual_cues(document) -> list[NarrationVisualCue]:
                     action=action,
                     element_type=element_type,
                     text=text,
+                    segment_id=f"{key}_{sentence_index + 1}",
                 )
             )
 
