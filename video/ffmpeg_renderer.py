@@ -53,8 +53,23 @@ def _visual_filter(document: VideoDocument, subtitle_file: Path) -> str:
         filters.append(f"drawbox=x=60:y=80:w=960:h=130:color=0x111827@0.96:t=fill:enable=between(t\\,{start}\\,{end})")
         filters.append(f"drawbox=x=60:y=230:w=960:h=5:color=0x2563EB@1:t=fill:enable=between(t\\,{start}\\,{end})")
         for element in scene.elements:
-            if element.type in {"title", "method", "math_step", "answer", "warning", "summary", "cta", "problem", "text"}:
+            if element.type in {"title", "method", "math_step", "answer", "warning", "summary", "cta", "problem", "text", "rate", "formula"}:
                 filters.append(_drawtext(element, fontfile))
+            elif element.type == "tank":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x60A5FA@0.25:t=10{enable}")
+                filters.append(f"drawbox=x=300:y=700:w=480:h=180:color=0x60A5FA@0.55:t=fill{enable}")
+                filters.append(f"drawtext=text=满池水\\ =\\ 1:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{enable}")
+            elif element.type == "shape":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0xDBEAFE@0.7:t=fill{enable}")
+                filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0x2563EB@1:t=8{enable}")
+                filters.append(f"drawtext=text=长方形:fontsize=52:fontcolor=0x111827:x=(w-text_w)/2:y=610{enable}")
+            elif element.type == "fraction_bar":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0xE5E7EB@1:t=fill{enable}")
+                filters.append(f"drawbox=x=190:y=560:w=350:h=180:color=0x60A5FA@0.75:t=fill{enable}")
+                filters.append(f"drawbox=x=190:y=560:w=700:h=180:color=0x111827@1:t=8{enable}")
     subtitle_path = str(subtitle_file).replace("\\", "/").replace(":", "\\:")
     filters.append("subtitles=" + subtitle_path + ":force_style='FontName=Microsoft YaHei,FontSize=20,PrimaryColour=&H00111111&,OutlineColour=&H00FFFFFF&,Outline=2,Alignment=2,MarginV=150'")
     return ",".join(filters)
