@@ -116,6 +116,19 @@ def synthesize_batch(
     # Keep a log file as well, because the launcher may close before the traceback
     # can be copied from the console.
     log_path = output / "f5_tts.log"
+    # The project is designed to run fully locally. Prevent inherited proxy
+    # settings from making Hugging Face / httpx attempt a network request.
+    # If a required model is genuinely missing from the local cache, F5-TTS
+    # will now report that directly instead of failing on a SOCKS dependency.
+    child_env = os.environ.copy()
+    for proxy_name in (
+        "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+        "http_proxy", "https_proxy", "all_proxy",
+    ):
+        child_env.pop(proxy_name, None)
+    child_env["HF_HUB_OFFLINE"] = "1"
+    child_env["TRANSFORMERS_OFFLINE"] = "1"
+
     with log_path.open("w", encoding="utf-8", errors="replace") as log_file:
         completed = subprocess.run(
             command,
@@ -125,6 +138,7 @@ def synthesize_batch(
             text=True,
             encoding="utf-8",
             errors="replace",
+            env=child_env,
         )
         log_file.write(completed.stdout or "")
         if completed.stdout:
