@@ -98,6 +98,13 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 for offset in (0, 70, 140):
                     x_pos = side + offset if direction > 0 else side + 250 - offset - 22
                     filters.append(f"drawbox=x={x_pos}:y=1075:w=22:h=22:color=0x2563EB@1:t=fill{enable}")
+                rate_path = _write_textfile(output, f"rate_{text_index}", element.text or "")
+                font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
+                filters.append(
+                    f"drawtext=textfile={_escape_filter_path(str(rate_path))}:fontsize=42:"
+                    f"fontcolor=0x111827:x=(w-text_w)/2:y=1135{font}{enable}"
+                )
+                text_index += 1
             elif element.type == "mistake":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=110:y=1450:w=860:h=150:color=0xFEE2E2@0.96:t=fill{enable}")
