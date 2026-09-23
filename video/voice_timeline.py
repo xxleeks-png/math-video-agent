@@ -1,5 +1,6 @@
 from tts.models import AudioSegment, TTSBatchResult, VoiceConfig
-from .narration_visual_map import NarrationVisualCue, _split_sentences
+from tts.local import synthesize_batch
+from .narration_visual_map import _split_sentences
 from video.dsl import VideoDocument
 
 
@@ -23,3 +24,12 @@ def build_voice_timeline(document: VideoDocument) -> list[AudioSegment]:
             )
     return segments
 
+
+def synthesize_voice_timeline(
+    document: VideoDocument,
+    config: VoiceConfig,
+    output_dir: str = "output/audio",
+) -> TTSBatchResult:
+    """Synthesize the sentence timeline through the configured local TTS provider."""
+    segments = build_voice_timeline(document)
+    return synthesize_batch(segments, config, output_dir)
