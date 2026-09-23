@@ -12,6 +12,7 @@ class NarrationVisualCue:
     element_type: str
     text: str = ""
     segment_id: str = ""
+    sentence_index: int = 0
 
 
 def _split_sentences(text: str) -> list[str]:
