@@ -95,6 +95,11 @@ def _visual_filter(document: VideoDocument, subtitle_file: Path) -> str:
                 for offset in (0, 70, 140):
                     x_pos = side + offset if direction > 0 else side + 250 - offset - 22
                     filters.append(f"drawbox=x={x_pos}:y=1075:w=22:h=22:color=0x2563EB@1:t=fill{enable}")
+            elif element.type == "dimension":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                label = element.text or "长度"
+                label_path = _write_textfile(output, f"dimension_{element.start:g}", label)
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(label_path))}:fontsize=42:fontcolor=0x111827:x=820:y=650{enable}")
             elif element.type == "shape":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0xDBEAFE@0.7:t=fill{enable}")
