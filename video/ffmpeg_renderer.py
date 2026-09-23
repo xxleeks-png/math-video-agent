@@ -316,6 +316,8 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
             elif element.type == "math_step":
+                filters.extend(_semantic_action_filters(element))
+                filters.extend(_semantic_action_text_filters(element, output, fontfile, text_index))
                 filters.append(_textfile_drawtext(element, output, fontfile, text_index))
                 text_index += 1
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
