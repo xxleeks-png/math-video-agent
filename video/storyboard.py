@@ -15,6 +15,8 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
         script = select_teacher_script_with_local_llm(solution, target_duration=40, config=LLMConfig())
     else:
         script = select_teacher_script(solution)
+    plan = plan_short_video(solution.knowledge_point.split(" / ")[0], target_duration=40)
+    timing = {segment.key: segment for segment in plan.segments}
     visual_elements = build_math_visuals(solution)
     mistake = build_mistake_strategy(solution)
     explain_end = timing["explain"].end
@@ -26,8 +28,6 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
         VideoElement(type="correction", text=mistake["why"], x=0.5, y=0.68, scale=0.76, start=mistake_start + 1.5, end=mistake_start + 3.5, animation="slide"),
         VideoElement(type="method", text=mistake["method"], x=0.5, y=0.84, scale=0.76, start=mistake_start + 3.0, end=mistake_end - 0.2, animation="pop"),
     ]
-    plan = plan_short_video(solution.knowledge_point.split(" / ")[0], target_duration=40)
-    timing = {segment.key: segment for segment in plan.segments}
     scenes = [
         VideoScene(
             start=timing["hook"].start, end=timing["hook"].end,
