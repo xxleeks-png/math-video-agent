@@ -42,10 +42,23 @@ def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) 
     color = "white" if element.emphasis else "0x111827"
     box = "box=1:boxcolor=0xFFFFFF@0.92:boxborderw=18" if not element.emphasis else "box=1:boxcolor=0x111827@0.96:boxborderw=22"
     enable = ""
+    alpha = ""
     if element.start is not None and element.end is not None:
-        enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+        start = element.start
+        end = element.end
+        enable = f":enable=between(t\\,{start:g}\\,{end:g})"
+        duration = max(end - start, 0.1)
+        # enter: quick fade/scale-in, focus: stable, resolve: slight fade-out.
+        phase = element.action_phase or "hold"
+        if phase == "enter":
+            progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g},0,1)"
+            alpha = f":alpha={progress}"
+        elif phase == "resolve":
+            fade_start = start + duration * 0.75
+            progress = f"1-0.35*clip((t-{fade_start:g})/{max(duration * 0.25, 0.1):g},0,1)"
+            alpha = f":alpha={progress}"
     font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
-    return f"drawtext=textfile={path}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{enable}"
+    return f"drawtext=textfile={path}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{alpha}{enable}"
 
 def _font_file() -> str | None:
     candidates = [
@@ -76,9 +89,16 @@ def _visual_filter(document: VideoDocument, output: Path, subtitle_file: Path) -
                 text_index += 1
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 # Staged underline gives each calculation step a visual focus.
+                phase = element.action_phase or "hold"
+                if phase == "focus":
+                    underline = enable
+                elif phase == "enter":
+                    underline = f":enable=between(t\\,{element.start:g}\\,{min(element.end or element.start, element.start + 0.35):g})"
+                else:
+                    underline = enable
                 filters.append(
                     f"drawbox=x=210:y={int((element.y or 0.5)*1920 + 55)}:w=660:h=6:"
-                    f"color=0x2563EB@0.9:t=fill{enable}"
+                    f"color=0x2563EB@0.9:t=fill{underline}"
                 )
             elif element.type == "tank":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
