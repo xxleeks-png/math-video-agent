@@ -30,9 +30,17 @@ def validate_action_fields(
     selected: Optional[int] = None,
     removed: Optional[int] = None,
     remaining: Optional[int] = None,
+    left: Optional[str] = None,
+    right: Optional[str] = None,
+    result: Optional[str] = None,
+    source: Optional[str] = None,
+    target: Optional[str] = None,
 ) -> bool:
     """Validate an action payload without depending on VideoElement."""
     if action is not None and action not in SUPPORTED_VISUAL_ACTIONS:
+        return False
+    text_fields = (left, right, result, source, target)
+    if any(value is not None and not str(value).strip() for value in text_fields):
         return False
     if ratio is not None and not 0 <= ratio <= 1:
         return False
@@ -50,6 +58,14 @@ def validate_action_fields(
         if selected is not None and removed is not None and remaining is not None:
             if selected - removed != remaining:
                 return False
+    if action == "compare" and (left is None or right is None):
+        return False
+    if action == "transform" and source is None and target is None and result is None:
+        return False
+    if action == "split" and source is None and result is None and units is None:
+        return False
+    if action == "merge" and source is None and result is None and left is None and right is None:
+        return False
     return True
 
 
