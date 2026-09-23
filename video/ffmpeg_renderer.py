@@ -81,8 +81,20 @@ def _visual_filter(document: VideoDocument, subtitle_file: Path) -> str:
             elif element.type == "tank":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=300:y=620:w=480:h=260:color=0x60A5FA@0.25:t=10{enable}")
-                filters.append(f"drawbox=x=300:y=700:w=480:h=180:color=0x60A5FA@0.55:t=fill{enable}")
-                filters.append(f"drawtext=text=满池水\\ =\\ 1:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{enable}")
+                duration = max((element.end or 1) - (element.start or 0), 0.1)
+                height_expr = f"180*clip((t-{element.start:g})/{duration:g},0,1)"
+                y_expr = f"880-({height_expr})"
+                filters.append(f"drawbox=x=300:y={y_expr}:w=480:h=180:color=0x60A5FA@0.55:t=fill{enable}")
+                tank_path = _write_textfile(output, "tank", "满池水 = 1")
+                filters.append(f"drawtext=textfile={_escape_filter_path(str(tank_path))}:fontsize=54:fontcolor=0x111827:x=(w-text_w)/2:y=835{enable}")
+            elif element.type == "rate":
+                enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
+                side = 180 if element.x < 0.5 else 650
+                direction = 1 if element.x < 0.5 else -1
+                filters.append(f"drawbox=x={side}:y=1080:w=250:h=12:color=0x2563EB@0.85:t=fill{enable}")
+                for offset in (0, 70, 140):
+                    x_pos = side + offset if direction > 0 else side + 250 - offset - 22
+                    filters.append(f"drawbox=x={x_pos}:y=1075:w=22:h=22:color=0x2563EB@1:t=fill{enable}")
             elif element.type == "shape":
                 enable = f":enable=between(t\\,{element.start:g}\\,{element.end:g})"
                 filters.append(f"drawbox=x=250:y=500:w=580:h=320:color=0xDBEAFE@0.7:t=fill{enable}")
