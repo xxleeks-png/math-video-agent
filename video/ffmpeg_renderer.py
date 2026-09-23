@@ -58,7 +58,7 @@ def _textfile_drawtext(element, output: Path, fontfile: str | None, index: int) 
             progress = f"1-0.35*clip((t-{fade_start:g})/{max(duration * 0.25, 0.1):g}\\,0\\,1)"
             alpha = f":alpha={progress}"
         elif phase == "auto":
-            progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g},0,1)"
+            progress = f"clip((t-{start:g})/{min(duration * 0.25, 0.35):g}\\,0\\,1)"
             alpha = f":alpha={progress}"
     font = f":fontfile={_escape_filter_path(fontfile)}" if fontfile else ""
     return f"drawtext=textfile={path}:fontsize={size}:fontcolor={color}:x={x}:y={y}:{box}:shadowx=2:shadowy=2{font}{alpha}{enable}"
