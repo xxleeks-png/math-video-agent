@@ -5,6 +5,7 @@ class VideoElement(BaseModel):
     type: str
     text: Optional[str] = None
     value: Optional[str] = None
+    semantic_key: Optional[str] = None
     x: float = 0.5
     y: float = 0.5
     scale: float = 1.0
@@ -21,6 +22,7 @@ class VideoScene(BaseModel):
     elements: List[VideoElement] = Field(default_factory=list)
     narration: str = ""
     subtitle: str = ""
+
 class VideoDocument(BaseModel):
     version: str = "0.8.0"
     width: int = 1080
