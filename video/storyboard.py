@@ -1,6 +1,7 @@
 from agents.script_selector import select_teacher_script
 from agents.local_script_optimizer import select_teacher_script_with_local_llm
 from llm.models import LLMConfig
+from .short_video_plan import plan_short_video
 import os
 from math_engine.models import MathSolution
 from .dsl import VideoDocument, VideoScene, VideoElement, validate_video_document
@@ -13,17 +14,19 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
     else:
         script = select_teacher_script(solution)
     visual_elements = build_math_visuals(solution)
+    plan = plan_short_video(solution.knowledge_point.split(" / ")[0], target_duration=40)
+    timing = {segment.key: segment for segment in plan.segments}
     scenes = [
         VideoScene(
-            start=0, end=4,
+            start=timing["hook"].start, end=timing["hook"].end,
             elements=[
                 VideoElement(type="title", text="这道题的关键是什么？", x=0.5, y=0.22, emphasis=True, start=0, end=4, animation="fade"),
-                VideoElement(type="problem", text=solution.problem, x=0.5, y=0.48, start=0.6, end=3.8, animation="fade_slide"),
+                VideoElement(type="problem", text=solution.problem, x=0.5, y=0.48, start=timing["hook"].start + 0.5, end=timing["hook"].end - 0.2, animation="fade_slide"),
             ],
             narration=script["hook"], subtitle=script["hook"],
         ),
         VideoScene(
-            start=4, end=24,
+            start=timing["explain"].start, end=timing["explain"].end,
             elements=[
                 VideoElement(type="method", text=script["key_method"], x=0.5, y=0.18, emphasis=True, start=4, end=24, animation="fade"),
                 *visual_elements,
@@ -32,24 +35,24 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
             subtitle=" ".join(script["explanation"][:3]),
         ),
         VideoScene(
-            start=24, end=32,
+            start=timing["mistake"].start, end=timing["mistake"].end,
             elements=[
                 VideoElement(type="warning", text="常见错误", x=0.5, y=0.25, emphasis=True, start=24, end=32, animation="fade"),
-                VideoElement(type="text", text=script["common_mistake"], x=0.5, y=0.48, start=24.6, end=31.5, animation="fade_slide"),
+                VideoElement(type="text", text=script["common_mistake"], x=0.5, y=0.48, start=timing["mistake"].start + 0.4, end=timing["mistake"].end - 0.3, animation="fade_slide"),
             ],
             narration=script["common_mistake"], subtitle=script["common_mistake"],
         ),
         VideoScene(
-            start=32, end=40,
+            start=timing["summary"].start, end=timing["summary"].end,
             elements=[
                 VideoElement(type="summary", text=script["key_method"], x=0.5, y=0.28, emphasis=True, start=32, end=40, animation="fade"),
-                VideoElement(type="answer", text=f"答案：{solution.answer}", x=0.5, y=0.45, emphasis=True, start=33, end=38.5, animation="pop"),
-                VideoElement(type="cta", text=script["cta"], x=0.5, y=0.62, start=36, end=40, animation="fade"),
+                VideoElement(type="answer", text=f"答案：{solution.answer}", x=0.5, y=0.45, emphasis=True, start=timing["summary"].start + 1.0, end=timing["summary"].end - 1.5, animation="pop"),
+                VideoElement(type="cta", text=script["cta"], x=0.5, y=0.62, start=timing["summary"].start + 4.0, end=timing["summary"].end, animation="fade"),
             ],
             narration=script["transfer"] + " " + script["cta"], subtitle=script["transfer"],
         ),
     ]
-    document = VideoDocument(duration=40, scenes=scenes)
+    document = VideoDocument(duration=plan.duration, scenes=scenes)
     if not validate_video_document(document):
         raise ValueError("生成的视频 DSL 未通过时间轴校验")
     return document
