@@ -150,16 +150,24 @@ def _semantic_action_filters(element) -> list[str]:
         filters.append(f"drawbox=x=360:y=1195:w=360:h=72:color=0x2563EB@0.18:t=fill{enter}")
         filters.append(f"drawbox=x=360:y=1195:w=360:h=72:color=0x2563EB@0.9:t=7{resolve}")
     elif action == "compare":
-        filters.append(f"drawbox=x=170:y=1210:w=300:h=24:color=0x60A5FA@0.75:t=fill{focus}")
-        filters.append(f"drawbox=x=610:y=1210:w=300:h=24:color=0x94A3B8@0.75:t=fill{focus}")
+        # Keep both operands visible; comparison semantics do not imply a winner.
+        filters.append(f"drawbox=x=170:y=1190:w=300:h=70:color=0x60A5FA@0.75:t=fill{focus}")
+        filters.append(f"drawbox=x=610:y=1190:w=300:h=70:color=0x94A3B8@0.75:t=fill{focus}")
+        filters.append(f"drawbox=x=515:y=1200:w=50:h=50:color=0x2563EB@0.9:t=8{resolve}")
     elif action == "split":
-        for x in (350, 530, 710):
-            filters.append(f"drawbox=x={x}:y=1160:w=5:h=110:color=0x64748B@0.9:t=fill{focus}")
+        units = max(2, min(element.action_units or 4, 12))
+        left, width = 260, 560
+        cell = width / units
+        for i in range(1, units):
+            x = left + cell * i
+            filters.append(f"drawbox=x={x:g}:y=1160:w=5:h=110:color=0x64748B@0.9:t=fill{focus}")
+        filters.append(f"drawbox=x={left}:y=1160:w={width}:h=110:color=0x2563EB@0.9:t=8{resolve}")
     elif action == "merge":
         left = f"160+220*(1-{progress})"
         right = f"700-220*(1-{progress})"
         filters.append(f"drawbox=x={left}:y=1210:w=180:h=42:color=0x60A5FA@0.72:t=fill{focus}")
         filters.append(f"drawbox=x={right}:y=1210:w=180:h=42:color=0x60A5FA@0.72:t=fill{focus}")
+        filters.append(f"drawbox=x=390:y=1200:w=300:h=62:color=0x2563EB@0.18:t=fill{resolve}")
     elif action == "highlight":
         filters.append(f"drawbox=x=140:y=1160:w=800:h=110:color=0x2563EB@0.16:t=fill{focus}")
         filters.append(f"drawbox=x=140:y=1160:w=800:h=110:color=0x2563EB@0.75:t=6{resolve}")
