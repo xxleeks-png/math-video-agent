@@ -39,7 +39,7 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
         VideoScene(
             start=timing["explain"].start, end=timing["explain"].end,
             elements=[
-                VideoElement(type="method", text=script["key_method"], x=0.5, y=0.18, emphasis=True, start=4, end=24, animation="fade"),
+                VideoElement(type="method", text=script["key_method"], x=0.5, y=0.18, emphasis=True, start=timing["explain"].start, end=timing["explain"].end, animation="fade"),
                 *explain_visuals,
             ],
             narration=" ".join(script["explanation"][:6]),
@@ -48,7 +48,7 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
         VideoScene(
             start=timing["mistake"].start, end=timing["mistake"].end,
             elements=[
-                VideoElement(type="warning", text="常见错误", x=0.5, y=0.25, emphasis=True, start=24, end=32, animation="fade"),
+                VideoElement(type="warning", text="常见错误", x=0.5, y=0.25, emphasis=True, start=timing["mistake"].start, end=timing["mistake"].start + 1.0, animation="fade"),
                 *mistake_visuals,
                 VideoElement(type="text", text=mistake["why"], x=0.5, y=0.40, start=timing["mistake"].start + 0.3, end=timing["mistake"].end - 0.4, animation="fade_slide"),
             ],
@@ -57,7 +57,7 @@ def build_storyboard(solution: MathSolution) -> VideoDocument:
         VideoScene(
             start=timing["summary"].start, end=timing["summary"].end,
             elements=[
-                VideoElement(type="summary", text=script["key_method"], x=0.5, y=0.28, emphasis=True, start=32, end=40, animation="fade"),
+                VideoElement(type="summary", text=script["key_method"], x=0.5, y=0.28, emphasis=True, start=timing["summary"].start, end=timing["summary"].end, animation="fade"),
                 VideoElement(type="answer", text=f"答案：{solution.answer}", x=0.5, y=0.45, emphasis=True, start=timing["summary"].start + 1.0, end=timing["summary"].end - 1.5, animation="pop"),
                 VideoElement(type="cta", text=script["cta"], x=0.5, y=0.62, start=timing["summary"].start + 4.0, end=timing["summary"].end, animation="fade"),
             ],
