@@ -18,9 +18,9 @@ def _water(solution: MathSolution) -> list[VideoElement]:
         VideoElement(type="rate", semantic_key="inlet", text="进水：1/6", x=0.30, y=0.62, start=7, end=12, animation="slide"),
         VideoElement(type="rate", semantic_key="outlet", text="出水：1/8", x=0.70, y=0.62, start=10, end=15, animation="slide"),
         VideoElement(type="relation", semantic_key="net_relation", text="进水 + 雨水 − 出水 = 净变化", x=0.5, y=0.78, scale=0.82, start=12, end=17, animation="fade"),
-        VideoElement(type="rate", semantic_key="net_rate", text="雨天净变化：1/12", x=0.5, y=0.70, start=14, end=18, animation="pop"),
+        VideoElement(type="rate", semantic_key="net_rate", text="雨天净变化：1/12", x=0.5, y=0.70, start=14, end=18, animation="pop", emphasis=True),
         VideoElement(type="formula", semantic_key="rain_rate", text="雨水速度 = 1/12 + 1/8 − 1/6 = 1/24", x=0.5, y=0.50, scale=0.82, start=17, end=21, animation="fade"),
-        VideoElement(type="formula", semantic_key="effective_outflow", text="实际排水速度 = 1/8 − 1/24 = 1/12", x=0.5, y=0.62, scale=0.86, start=20, end=24, animation="fade"),
+        VideoElement(type="formula", semantic_key="effective_outflow", text="实际排水速度 = 1/8 − 1/24 = 1/12", x=0.5, y=0.62, scale=0.86, start=20, end=24, animation="fade", emphasis=True),
     ]
 
 
